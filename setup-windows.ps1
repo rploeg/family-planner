@@ -107,10 +107,24 @@ Write-Host "Backend service started" -ForegroundColor Green
 # 11. Build and deploy frontend
 Write-Host "`nBuilding frontend..." -ForegroundColor Yellow
 Set-Location "$baseDir\family-planner"
-npm install
+npm install --legacy-peer-deps
 
 # Create production .env file
-$serverIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike "127.*"} | Select-Object -First 1).IPAddress
+# Get physical Ethernet adapter IP (skip loopback and virtual adapters)
+$serverIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
+    $_.IPAddress -notlike "127.*" -and 
+    $_.IPAddress -notlike "169.254.*" -and
+    $_.InterfaceAlias -notlike "*Hyper-V*" -and
+    $_.InterfaceAlias -notlike "*Virtual*" -and
+    $_.InterfaceAlias -notlike "*VMware*" -and
+    $_.PrefixOrigin -eq "Dhcp" -or $_.PrefixOrigin -eq "Manual"
+} | Sort-Object -Property InterfaceIndex | Select-Object -First 1).IPAddress
+
+if (-not $serverIP) {
+    Write-Host "Could not auto-detect IP address. Please enter it manually:" -ForegroundColor Yellow
+    $serverIP = Read-Host "Enter server IP address (e.g., 192.168.1.100)"
+}
+
 $envContent = "REACT_APP_API_BASE_URL=http://${serverIP}:3002/api"
 Set-Content -Path ".env.production.local" -Value $envContent
 Write-Host "Frontend will use API at: http://${serverIP}:3002/api" -ForegroundColor Cyan
