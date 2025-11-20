@@ -36,35 +36,32 @@ pm2-startup install
 Write-Host "✓ PM2 installed" -ForegroundColor Green
 
 # 5. Create directory structure
-Write-Host "`nCreating directory structure..." -ForegroundColor Yellow
-$baseDir = "C:\family-planner"
+Write-Host "\nCreating directory structure..." -ForegroundColor Yellow
+$baseDir = "C:\repo\family-planner"
 New-Item -ItemType Directory -Force -Path $baseDir | Out-Null
-New-Item -ItemType Directory -Force -Path "$baseDir\backend" | Out-Null
-New-Item -ItemType Directory -Force -Path "$baseDir\frontend" | Out-Null
-New-Item -ItemType Directory -Force -Path "$baseDir\repo" | Out-Null
-Write-Host "✓ Directories created at $baseDir" -ForegroundColor Green
+Write-Host "✓ Directory created at $baseDir" -ForegroundColor Green
 
 # 6. Clone repository
-Write-Host "`nCloning repository..." -ForegroundColor Yellow
+Write-Host "\nCloning repository..." -ForegroundColor Yellow
 $repoUrl = Read-Host "Enter your GitHub repository URL (e.g., https://github.com/rploeg/family-planner.git)"
-cd $baseDir
-if (Test-Path "$baseDir\repo\.git") {
+if (Test-Path "$baseDir\.git") {
     Write-Host "Repository already exists, pulling latest..." -ForegroundColor Yellow
-    cd "$baseDir\repo"
+    cd $baseDir
     git pull
 } else {
-    git clone $repoUrl repo
+    cd C:\repo
+    git clone $repoUrl family-planner
 }
 Write-Host "✓ Repository cloned/updated" -ForegroundColor Green
 
 # 7. Setup Backend
-Write-Host "`nSetting up backend..." -ForegroundColor Yellow
-cd "$baseDir\repo\family-planner-backend"
+Write-Host "\nSetting up backend..." -ForegroundColor Yellow
+cd "$baseDir\family-planner-backend"
 npm install
 Write-Host "✓ Backend dependencies installed" -ForegroundColor Green
 
 # 8. Copy .env file
-Write-Host "`nPlease create/copy your .env file to: $baseDir\repo\family-planner-backend\.env" -ForegroundColor Yellow
+Write-Host "\nPlease create/copy your .env file to: $baseDir\family-planner-backend\.env" -ForegroundColor Yellow
 Write-Host "Required variables:" -ForegroundColor Yellow
 Write-Host "  - PORT=3002"
 Write-Host "  - DATABASE_PATH=./data/family-planner.db"
@@ -85,15 +82,15 @@ try {
 }
 
 # 10. Start services with PM2
-Write-Host "`nStarting services..." -ForegroundColor Yellow
-cd "$baseDir\repo\family-planner-backend"
+Write-Host "\nStarting services..." -ForegroundColor Yellow
+cd "$baseDir\family-planner-backend"
 pm2 start server.js --name family-planner-backend
 pm2 save
 Write-Host "✓ Backend service started" -ForegroundColor Green
 
 # 11. Build and deploy frontend (initial)
-Write-Host "`nBuilding frontend..." -ForegroundColor Yellow
-cd "$baseDir\repo\family-planner"
+Write-Host "\nBuilding frontend..." -ForegroundColor Yellow
+cd "$baseDir\family-planner"
 npm install
 
 # Create production .env file
@@ -103,12 +100,10 @@ Set-Content -Path ".env.production.local" -Value $envContent
 Write-Host "Frontend will use API at: http://${serverIP}:3002/api" -ForegroundColor Cyan
 
 npm run build
-Copy-Item -Path "build\*" -Destination "$baseDir\frontend" -Recurse -Force
-Write-Host "✓ Frontend built and deployed" -ForegroundColor Green
+Write-Host "✓ Frontend built" -ForegroundColor Green
 
 # 12. Start frontend with PM2
-cd $baseDir
-pm2 serve "$baseDir\frontend" 3000 --name family-planner-frontend --spa
+pm2 serve "$baseDir\family-planner\build" 3000 --name family-planner-frontend --spa
 pm2 save
 Write-Host "✓ Frontend service started" -ForegroundColor Green
 

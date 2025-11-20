@@ -24,7 +24,7 @@ jobs:
           port: 22
           script: |
             # Navigate to repository directory
-            cd C:\family-planner\repo
+            cd C:\repo\family-planner
             
             # Pull latest changes
             git pull origin master
@@ -66,7 +66,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           source: "family-planner/build/"
-          target: "C:/family-planner/frontend/"
+          target: "C:/repo/family-planner/family-planner/build/"
           strip_components: 2
           rm: true
       
