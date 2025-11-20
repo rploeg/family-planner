@@ -1,0 +1,201 @@
+.family-card {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  border: 1px solid #2a2a2a;
+}
+
+.family-card:hover {
+  background: #252525;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(139, 195, 74, 0.15);
+  border-color: #8BC34A;
+}
+
+.family-card:active {
+  transform: translateY(0);
+}
+
+.family-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.user-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8BC34A 0%, #689F38 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0a0a0a;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(139, 195, 74, 0.3);
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-badge {
+  font-size: 10px;
+  padding: 4px 8px;
+  background: rgba(139, 195, 74, 0.2);
+  border: 1px solid rgba(139, 195, 74, 0.4);
+  border-radius: 12px;
+  color: #8BC34A;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.user-email {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.family-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #888;
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.nfc-tag {
+  font-family: 'Monaco', 'Courier New', monospace;
+  background: #0a0a0a;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  font-size: 12px;
+  color: #8BC34A;
+}
+
+.status-badge {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-badge.home {
+  background: rgba(139, 195, 74, 0.2);
+  color: #8BC34A;
+  border: 1px solid rgba(139, 195, 74, 0.3);
+}
+
+.status-badge.away {
+  background: rgba(255, 152, 0, 0.2);
+  color: #FF9800;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.family-card-footer {
+  padding-top: 16px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.permission-item {
+  font-size: 12px;
+  padding: 6px 10px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #aaa;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 768px) {
+  .family-card {
+    padding: 16px;
+  }
+
+  .family-card-header {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+  }
+
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+  }
+
+  .user-name {
+    font-size: 16px;
+  }
+
+  .user-email {
+    font-size: 13px;
+  }
+
+  .detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .permissions {
+    flex-direction: column;
+  }
+
+  .permission-item {
+    width: 100%;
+  }
+}

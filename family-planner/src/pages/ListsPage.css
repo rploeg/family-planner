@@ -1,0 +1,273 @@
+.lists-page {
+  padding: 0 0 80px 0;
+}
+
+.lists-container {
+  display: flex;
+  gap: 24px;
+  height: calc(100vh - 180px);
+}
+
+.lists-sidebar {
+  width: 280px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.list-tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.list-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.list-tab.active {
+  background: rgba(139, 195, 74, 0.2);
+  border-color: #8BC34A;
+}
+
+.list-icon {
+  font-size: 28px;
+}
+
+.list-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.list-name {
+  color: #fff;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.list-count {
+  color: #999;
+  font-size: 13px;
+}
+
+.list-content {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.list-title-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.list-icon-large {
+  font-size: 48px;
+}
+
+.list-title-section h3 {
+  color: #fff;
+  font-size: 28px;
+  margin: 0;
+}
+
+.list-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.clear-btn {
+  background: rgba(255, 152, 0, 0.2);
+  border: 1px solid rgba(255, 152, 0, 0.5);
+  color: #FF9800;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clear-btn:hover:not(:disabled) {
+  background: rgba(255, 152, 0, 0.3);
+}
+
+.clear-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.delete-list-btn {
+  background: rgba(244, 67, 54, 0.2);
+  border: 1px solid rgba(244, 67, 54, 0.5);
+  color: #F44336;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.delete-list-btn:hover {
+  background: rgba(244, 67, 54, 0.3);
+}
+
+.add-item-section {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.add-item-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #fff;
+  font-size: 16px;
+}
+
+.add-item-input:focus {
+  outline: none;
+  border-color: #8BC34A;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.add-item-btn {
+  background: linear-gradient(135deg, #8BC34A 0%, #689F38 100%);
+  border: none;
+  color: #000;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-item-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
+}
+
+.list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.list-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.list-item.completed {
+  opacity: 0.5;
+}
+
+.list-item.completed .item-text {
+  text-decoration: line-through;
+}
+
+.item-checkbox {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  accent-color: #8BC34A;
+}
+
+.item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-text {
+  color: #fff;
+  font-size: 16px;
+}
+
+.item-meta {
+  color: #666;
+  font-size: 13px;
+}
+
+.delete-item-btn {
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: all 0.3s ease;
+}
+
+.delete-item-btn:hover {
+  color: #F44336;
+}
+
+.icon-picker {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.icon-option {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid transparent;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 28px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.icon-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.icon-option.selected {
+  background: rgba(139, 195, 74, 0.2);
+  border-color: #8BC34A;
+}
+
+@media (max-width: 768px) {
+  .lists-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .lists-sidebar {
+    width: 100%;
+    max-height: 200px;
+  }
+}

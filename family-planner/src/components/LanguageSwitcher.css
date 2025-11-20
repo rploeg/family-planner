@@ -1,0 +1,29 @@
+.language-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #fff;
+  font-weight: 500;
+}
+
+.language-switcher:hover {
+  background: rgba(139, 195, 74, 0.2);
+  border-color: #8BC34A;
+  transform: translateY(-2px);
+}
+
+.lang-flag {
+  font-size: 20px;
+}
+
+.lang-code {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}

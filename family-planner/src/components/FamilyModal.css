@@ -1,0 +1,76 @@
+.input-with-button {
+  display: flex;
+  gap: 8px;
+}
+
+.input-with-button input {
+  flex: 1;
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding-right: 12px;
+  transition: all 0.2s ease;
+}
+
+.input-with-unit:focus-within {
+  border-color: #8BC34A;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
+}
+
+.input-with-unit input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 12px;
+}
+
+.input-with-unit input:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.unit-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #8BC34A;
+  white-space: nowrap;
+}
+
+.generate-btn {
+  padding: 12px 20px;
+  background: #2a2a2a;
+  border: 1px solid #8BC34A;
+  border-radius: 6px;
+  color: #8BC34A;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.generate-btn:hover {
+  background: rgba(139, 195, 74, 0.1);
+  transform: translateY(-1px);
+}
+
+.generate-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .input-with-button {
+    flex-direction: column;
+  }
+
+  .generate-btn {
+    width: 100%;
+  }
+}

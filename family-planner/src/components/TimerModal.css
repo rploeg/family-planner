@@ -1,0 +1,161 @@
+.timer-modal {
+  background-color: var(--color-bg-primary);
+  border-radius: 12px;
+  padding: var(--spacing-lg);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.timer-input-section {
+  margin: var(--spacing-lg) 0;
+}
+
+.time-inputs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.time-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.time-input-group label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.time-input-group input {
+  width: 80px;
+  height: 80px;
+  font-size: 32px;
+  font-weight: 600;
+  text-align: center;
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  padding: 0;
+}
+
+.time-input-group input:focus {
+  outline: none;
+  border-color: var(--color-accent-green);
+}
+
+.time-separator {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: 20px;
+}
+
+.preset-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.preset-button {
+  padding: var(--spacing-md) var(--spacing-sm);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-button:hover {
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-accent-green);
+  transform: translateY(-1px);
+}
+
+.preset-button:active {
+  transform: translateY(0);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+.cancel-button,
+.start-button {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.cancel-button {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.cancel-button:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.start-button {
+  background-color: var(--color-accent-green);
+  color: #000;
+}
+
+.start-button:hover {
+  background-color: #9CCC65;
+  transform: translateY(-1px);
+}
+
+.start-button:active {
+  transform: translateY(0);
+}
+
+.start-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.start-button:disabled:hover {
+  background-color: var(--color-accent-green);
+  transform: none;
+}
+
+@media (max-width: 480px) {
+  .timer-modal {
+    padding: var(--spacing-md);
+  }
+
+  .time-input-group input {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+  }
+
+  .time-separator {
+    font-size: 24px;
+  }
+
+  .preset-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

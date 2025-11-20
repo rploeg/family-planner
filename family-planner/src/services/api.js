@@ -1,0 +1,157 @@
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3002';
+
+class ApiService {
+  async request(endpoint, options = {}) {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    try {
+      const response = await fetch(url, config);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error(`API request failed: ${endpoint}`, error);
+      throw error;
+    }
+  }
+
+  // ============= FAMILY MEMBERS API =============
+  async getFamilyMembers() {
+    return this.request('/api/family-members');
+  }
+
+  async addFamilyMember(member) {
+    return this.request('/api/family-members', {
+      method: 'POST',
+      body: JSON.stringify(member),
+    });
+  }
+
+  async updateFamilyMember(id, updates) {
+    return this.request(`/api/family-members/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteFamilyMember(id) {
+    return this.request(`/api/family-members/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============= MEALS API =============
+  async getMeals(params = {}) {
+    const queryParams = new URLSearchParams();
+    if (params.date) queryParams.append('date', params.date);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    
+    const query = queryParams.toString();
+    return this.request(`/api/meals${query ? `?${query}` : ''}`);
+  }
+
+  async addMeal(meal) {
+    return this.request('/api/meals', {
+      method: 'POST',
+      body: JSON.stringify(meal),
+    });
+  }
+
+  async updateMeal(id, updates) {
+    return this.request(`/api/meals/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteMeal(id) {
+    return this.request(`/api/meals/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============= SHOPPING LISTS API =============
+  async getLists() {
+    return this.request('/api/lists');
+  }
+
+  async addList(list) {
+    return this.request('/api/lists', {
+      method: 'POST',
+      body: JSON.stringify(list),
+    });
+  }
+
+  async updateList(id, updates) {
+    return this.request(`/api/lists/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteList(id) {
+    return this.request(`/api/lists/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async addListItem(listId, item) {
+    return this.request(`/api/lists/${listId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(item),
+    });
+  }
+
+  async updateListItem(listId, itemId, updates) {
+    return this.request(`/api/lists/${listId}/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteListItem(listId, itemId) {
+    return this.request(`/api/lists/${listId}/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============= CALENDAR EVENTS API =============
+  async getEvents(startDate, endDate) {
+    const queryParams = new URLSearchParams({
+      startDate,
+      endDate,
+    });
+    return this.request(`/api/events?${queryParams.toString()}`);
+  }
+
+  // ============= SETTINGS API =============
+  async getSettings() {
+    return this.request('/api/settings');
+  }
+
+  async updateSetting(key, value) {
+    return this.request(`/api/settings/${key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ value }),
+    });
+  }
+
+  // ============= HEALTH CHECK =============
+  async healthCheck() {
+    return this.request('/health');
+  }
+}
+
+export default new ApiService();

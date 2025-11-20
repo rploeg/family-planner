@@ -1,0 +1,110 @@
+.event-card {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 4px solid #8BC34A;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  gap: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.event-card:hover {
+  background: #252525;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(139, 195, 74, 0.2);
+}
+
+.event-card:active {
+  transform: translateY(0);
+}
+
+.event-time {
+  font-size: 14px;
+  font-weight: 600;
+  color: #8BC34A;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.event-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.event-location {
+  font-size: 13px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.event-attendees {
+  font-size: 13px;
+  color: #8BC34A;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.event-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.event-calendar {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: #2a2a2a;
+  border-radius: 12px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.automation-badge {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: rgba(139, 195, 74, 0.2);
+  border: 1px solid rgba(139, 195, 74, 0.4);
+  border-radius: 12px;
+  color: #8BC34A;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 768px) {
+  .event-card {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .event-time {
+    min-width: 50px;
+    font-size: 13px;
+  }
+
+  .event-title {
+    font-size: 15px;
+  }
+
+  .event-location {
+    font-size: 12px;
+  }
+}
