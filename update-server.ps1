@@ -18,7 +18,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "✓ Code updated successfully" -ForegroundColor Green
+Write-Host "[OK] Code updated successfully" -ForegroundColor Green
 Write-Host ""
 
 # Update backend dependencies
@@ -30,7 +30,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "Warning: Backend npm install had issues, but continuing..." -ForegroundColor Yellow
 }
 
-Write-Host "✓ Backend dependencies updated" -ForegroundColor Green
+Write-Host "[OK] Backend dependencies updated" -ForegroundColor Green
 Write-Host ""
 
 # Restart backend
@@ -42,7 +42,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "✓ Backend restarted successfully" -ForegroundColor Green
+Write-Host "[OK] Backend restarted successfully" -ForegroundColor Green
 Write-Host ""
 
 # Update frontend dependencies
@@ -54,7 +54,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "Warning: Frontend npm install had issues, but continuing..." -ForegroundColor Yellow
 }
 
-Write-Host "✓ Frontend dependencies updated" -ForegroundColor Green
+Write-Host "[OK] Frontend dependencies updated" -ForegroundColor Green
 Write-Host ""
 
 # Rebuild frontend
@@ -66,7 +66,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "✓ Frontend built successfully" -ForegroundColor Green
+Write-Host "[OK] Frontend built successfully" -ForegroundColor Green
 Write-Host ""
 
 # Summary
@@ -75,9 +75,9 @@ Write-Host "  Update Complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Backend: Restarted automatically (PM2)" -ForegroundColor Green
-Write-Host "Frontend: Using new build (serve will use it automatically)" -ForegroundColor Green
+Write-Host "Frontend: Using new build" -ForegroundColor Green
 Write-Host ""
-Write-Host "If frontend serve was running, restart it with:" -ForegroundColor Yellow
-Write-Host '  cd C:\repo\family-planner\family-planner' -ForegroundColor White
-Write-Host '  serve -s build -l 3000' -ForegroundColor White
+Write-Host "If frontend serve was running, restart it:" -ForegroundColor Yellow
+Write-Host "  1. Stop the current serve process (Ctrl+C)" -ForegroundColor White
+Write-Host "  2. Run: serve -s build -l 3000" -ForegroundColor White
 Write-Host ""
