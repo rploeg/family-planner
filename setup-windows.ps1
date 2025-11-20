@@ -74,10 +74,11 @@ $envReady = Read-Host "Press Enter when .env file is ready"
 # 9. Configure Firewall
 Write-Host "`nConfiguring Windows Firewall..." -ForegroundColor Yellow
 try {
-    New-NetFirewallRule -DisplayName "Family Planner Backend" -Direction Inbound -LocalPort 3002 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue
-    New-NetFirewallRule -DisplayName "Family Planner Frontend" -Direction Inbound -LocalPort 3000 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue
+    New-NetFirewallRule -DisplayName "Family Planner Backend" -Direction Inbound -LocalPort 3002 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue | Out-Null
+    New-NetFirewallRule -DisplayName "Family Planner Frontend" -Direction Inbound -LocalPort 3000 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue | Out-Null
     Write-Host "✓ Firewall rules added" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "! Firewall rules may already exist" -ForegroundColor Yellow
 }
 
