@@ -78,6 +78,6 @@ Write-Host "Backend: Restarted automatically (PM2)" -ForegroundColor Green
 Write-Host "Frontend: Using new build (serve will use it automatically)" -ForegroundColor Green
 Write-Host ""
 Write-Host "If frontend serve was running, restart it with:" -ForegroundColor Yellow
-Write-Host "  cd C:\repo\family-planner\family-planner" -ForegroundColor White
+Write-Host '  cd C:\repo\family-planner\family-planner' -ForegroundColor White
 Write-Host '  serve -s build -l 3000' -ForegroundColor White
 Write-Host ""
