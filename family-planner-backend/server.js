@@ -19,8 +19,13 @@ const calDAVService = new CalDAVService({
 });
 
 // Middleware
+const corsOrigin = process.env.CORS_ORIGIN === '*' 
+  ? '*' 
+  : process.env.CORS_ORIGIN?.split(',') || '*';
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || '*'
+  origin: corsOrigin,
+  credentials: true
 }));
 app.use(bodyParser.json());
 
