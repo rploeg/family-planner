@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const DatabaseManager = require('./database/DatabaseManager');
 const CalDAVService = require('./services/CalDAVService');
+const LoxoneService = require('./services/LoxoneService');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -16,6 +17,13 @@ const calDAVService = new CalDAVService({
   serverUrl: process.env.CALDAV_SERVER_URL,
   username: process.env.CALDAV_USERNAME,
   password: process.env.CALDAV_PASSWORD
+});
+
+// Initialize Loxone Service (optional)
+const loxoneService = new LoxoneService({
+  serverUrl: process.env.LOXONE_SERVER_URL,
+  username: process.env.LOXONE_USERNAME,
+  password: process.env.LOXONE_PASSWORD
 });
 
 // Middleware
@@ -380,6 +388,56 @@ app.put('/api/settings/:key', async (req, res) => {
   }
 });
 
+// ============= LOXONE API =============
+app.get('/api/loxone/rooms', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured or unavailable' });
+    }
+    
+    const rooms = await loxoneService.getRoomsInfo();
+    res.json(rooms);
+  } catch (error) {
+    console.error('Error fetching Loxone rooms:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/loxone/suggestions', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.json([]); // Return empty suggestions if Loxone not configured
+    }
+    
+    // Get upcoming events from calendar
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const events = await calDAVService.getEvents(
+      now.toISOString().split('T')[0],
+      tomorrow.toISOString().split('T')[0]
+    );
+    
+    const rooms = await loxoneService.getRoomsInfo();
+    const suggestions = loxoneService.generateSuggestions(rooms, events);
+    
+    res.json(suggestions);
+  } catch (error) {
+    console.error('Error generating suggestions:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/loxone/status', async (req, res) => {
+  try {
+    res.json({
+      initialized: loxoneService.isInitialized,
+      configured: !!(process.env.LOXONE_SERVER_URL && process.env.LOXONE_USERNAME)
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Initialize CalDAV on startup
 (async () => {
   try {
@@ -393,6 +451,15 @@ app.put('/api/settings/:key', async (req, res) => {
     console.error('✗ CalDAV initialization failed:', error.message);
     console.log('→ Calendar sync will use cached data only');
   }
+  
+  // Initialize Loxone (optional)
+  if (process.env.LOXONE_SERVER_URL && process.env.LOXONE_USERNAME) {
+    try {
+      await loxoneService.initialize();
+    } catch (error) {
+      console.warn('⚠ Loxone initialization failed:', error.message);
+    }
+  }
 })();
 
 // Start Server
@@ -400,6 +467,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Family Planner Backend running on http://localhost:${PORT}`);
   console.log(`   Database: ${process.env.DATABASE_PATH || './data/family-planner.db'}`);
   console.log(`   CalDAV: ${process.env.CALDAV_SERVER_URL || 'not configured'}`);
+  console.log(`   Loxone: ${process.env.LOXONE_SERVER_URL || 'not configured'}`);
 });
 
 // Graceful shutdown

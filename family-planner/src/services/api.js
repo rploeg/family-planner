@@ -148,6 +148,19 @@ class ApiService {
     });
   }
 
+  // ============= LOXONE API =============
+  async getLoxoneRooms() {
+    return this.request('/api/loxone/rooms');
+  }
+
+  async getLoxoneSuggestions() {
+    return this.request('/api/loxone/suggestions');
+  }
+
+  async getLoxoneStatus() {
+    return this.request('/api/loxone/status');
+  }
+
   // ============= HEALTH CHECK =============
   async healthCheck() {
     return this.request('/health');

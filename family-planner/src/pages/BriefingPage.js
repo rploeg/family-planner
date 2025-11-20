@@ -4,6 +4,7 @@ import { useMeals } from '../context/MealsContext';
 import { useLoxone } from '../context/LoxoneContext';
 import { useTranslation } from 'react-i18next';
 import weatherService from '../services/weatherService';
+import api from '../services/api';
 import EventCard from '../components/EventCard';
 import './BriefingPage.css';
 
@@ -14,6 +15,9 @@ const BriefingPage = () => {
   const { t, i18n } = useTranslation();
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [rooms, setRooms] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [loxoneAvailable, setLoxoneAvailable] = useState(false);
   const todayEvents = getTodayEvents();
 
   // Debug logging
@@ -27,6 +31,7 @@ const BriefingPage = () => {
 
   useEffect(() => {
     loadWeather();
+    loadLoxoneData();
   }, []);
 
   const loadWeather = async () => {
@@ -37,6 +42,27 @@ const BriefingPage = () => {
       console.error('Failed to load weather:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLoxoneData = async () => {
+    try {
+      // Check if Loxone is available
+      const status = await api.getLoxoneStatus();
+      setLoxoneAvailable(status.initialized);
+
+      if (status.initialized) {
+        // Load room data and suggestions
+        const [roomsData, suggestionsData] = await Promise.all([
+          api.getLoxoneRooms(),
+          api.getLoxoneSuggestions()
+        ]);
+        setRooms(roomsData);
+        setSuggestions(suggestionsData);
+      }
+    } catch (error) {
+      console.error('Failed to load Loxone data:', error);
+      setLoxoneAvailable(false);
     }
   };
 
@@ -189,6 +215,73 @@ const BriefingPage = () => {
           </div>
         )}
       </section>
+
+      {/* Loxone Suggestions Section */}
+      {loxoneAvailable && suggestions.length > 0 && (
+        <section className="briefing-section suggestions-section">
+          <h3 className="section-title">
+            💡 {i18n.language === 'nl' ? 'Suggesties' : 'Suggestions'}
+          </h3>
+          <div className="suggestions-grid">
+            {suggestions.map((suggestion, index) => (
+              <div key={index} className={`suggestion-card priority-${suggestion.priority}`}>
+                <div className="suggestion-header">
+                  <span className="suggestion-icon">
+                    {suggestion.type === 'temperature' ? '🌡️' : '📍'}
+                  </span>
+                  <span className="suggestion-room">{suggestion.room}</span>
+                </div>
+                <p className="suggestion-message">{suggestion.message}</p>
+                {suggestion.action && (
+                  <button className="suggestion-action">
+                    {suggestion.action}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Room Status Section */}
+      {loxoneAvailable && rooms.length > 0 && (
+        <section className="briefing-section rooms-section">
+          <h3 className="section-title">
+            🏠 {i18n.language === 'nl' ? 'Kamer Status' : 'Room Status'}
+          </h3>
+          <div className="rooms-grid">
+            {rooms.map((room, index) => (
+              <div key={index} className="room-card">
+                <div className="room-header">
+                  <span className="room-name">{room.name}</span>
+                  {room.status && (
+                    <span className={`room-status status-${room.status.toLowerCase().replace(/\s/g, '-')}`}>
+                      {room.status}
+                    </span>
+                  )}
+                </div>
+                <div className="room-info">
+                  {room.actualTemp && (
+                    <div className="room-temp">
+                      <span className="temp-icon">🌡️</span>
+                      <span className="temp-value">{room.actualTemp.toFixed(1)}°C</span>
+                      {room.targetTemp && room.actualTemp !== room.targetTemp && (
+                        <span className="temp-target">→ {room.targetTemp}°C</span>
+                      )}
+                    </div>
+                  )}
+                  {room.occupied && (
+                    <div className="room-occupied">
+                      <span className="occupied-icon">👤</span>
+                      <span>{i18n.language === 'nl' ? 'Bezet' : 'Occupied'}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Family Status Section */}
       <section className="briefing-section family-section">
