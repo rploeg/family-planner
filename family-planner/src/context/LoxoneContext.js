@@ -110,31 +110,62 @@ export const LoxoneProvider = ({ children }) => {
     );
   };
 
-  const addUser = (userData) => {
-    const newUser = {
-      uuid: generateUUID(),
-      userid: String(1000 + users.length + 1),
-      nfcTags: [],
-      userState: 0,
-      isAdmin: false,
-      status: 'Away',
-      location: null,
-      ...userData
-    };
-    setUsers(prevUsers => [...prevUsers, newUser]);
-    return newUser;
+  const addUser = async (userData) => {
+    try {
+      // Create member in backend database
+      const newMember = {
+        id: generateUUID(),
+        name: userData.name,
+        role: userData.role || '',
+        email: userData.email,
+        status: userData.status || 'away',
+        avatar: userData.avatar || userData.name.charAt(0),
+        isAdmin: userData.admin || false
+      };
+      
+      await api.addFamilyMember(newMember);
+      
+      // Reload users from backend
+      await loadUsers();
+      
+      return newMember;
+    } catch (error) {
+      console.error('Failed to add user:', error);
+      throw error;
+    }
   };
 
-  const updateUser = (uuid, updates) => {
-    setUsers(prevUsers =>
-      prevUsers.map(user =>
-        user.uuid === uuid ? { ...user, ...updates } : user
-      )
-    );
+  const updateUser = async (uuid, updates) => {
+    try {
+      // Update in backend database
+      await api.updateFamilyMember(uuid, {
+        name: updates.name,
+        role: updates.role,
+        email: updates.email,
+        status: updates.status,
+        avatar: updates.avatar,
+        isAdmin: updates.admin
+      });
+      
+      // Reload users from backend
+      await loadUsers();
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      throw error;
+    }
   };
 
-  const deleteUser = (uuid) => {
-    setUsers(prevUsers => prevUsers.filter(user => user.uuid !== uuid));
+  const deleteUser = async (uuid) => {
+    try {
+      // Delete from backend database
+      await api.deleteFamilyMember(uuid);
+      
+      // Reload users from backend
+      await loadUsers();
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      throw error;
+    }
   };
 
   const grantTempAccess = (userId, validUntil) => {

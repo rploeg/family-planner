@@ -52,13 +52,34 @@ const BriefingPage = () => {
       setLoxoneAvailable(status.initialized);
 
       if (status.initialized) {
-        // Load room data and suggestions
+        // Load real room data and suggestions
         const [roomsData, suggestionsData] = await Promise.all([
           api.getLoxoneRooms(),
           api.getLoxoneSuggestions()
         ]);
         setRooms(roomsData);
         setSuggestions(suggestionsData);
+      } else {
+        // Use sample data to showcase the UI
+        const sampleRooms = [
+          { name: 'Home Office', actualTemp: 18, targetTemp: 21, status: 'Ready', occupied: false },
+          { name: 'Living Room', actualTemp: 22, targetTemp: 22, status: 'Occupied', occupied: true },
+          { name: 'Kitchen', actualTemp: 21, targetTemp: 21, status: 'Ready', occupied: false }
+        ];
+        
+        const sampleSuggestions = [
+          {
+            type: 'temperature',
+            room: 'Home Office',
+            message: 'Home Office is 18°C (target: 21°C). Warm up before work?',
+            priority: 'medium',
+            action: 'warm up'
+          }
+        ];
+        
+        setRooms(sampleRooms);
+        setSuggestions(sampleSuggestions);
+        setLoxoneAvailable(true); // Show sample data
       }
     } catch (error) {
       console.error('Failed to load Loxone data:', error);
