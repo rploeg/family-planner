@@ -45,15 +45,27 @@ Write-Host "Directory created at $baseDir" -ForegroundColor Green
 
 # 6. Clone repository
 Write-Host "`nCloning repository..." -ForegroundColor Yellow
-$repoUrl = Read-Host "Enter your GitHub repository URL (e.g., https://github.com/rploeg/family-planner.git)"
+Write-Host "For private repositories, you'll need to authenticate with GitHub." -ForegroundColor Cyan
+Write-Host "Options: 1) Use GitHub CLI (gh auth login), 2) Use Personal Access Token in URL" -ForegroundColor Cyan
+Write-Host "URL format with token: https://YOUR_TOKEN@github.com/rploeg/family-planner.git" -ForegroundColor Cyan
+$repoUrl = Read-Host "Enter your GitHub repository URL"
+
 if (Test-Path "$baseDir\.git") {
     Write-Host "Repository already exists, pulling latest..." -ForegroundColor Yellow
     Set-Location $baseDir
     git pull
 }
 else {
+    if (-not (Test-Path "C:\repo")) {
+        New-Item -ItemType Directory -Force -Path "C:\repo" | Out-Null
+    }
     Set-Location C:\repo
     git clone $repoUrl family-planner
+    
+    if (-not (Test-Path "$baseDir\.git")) {
+        Write-Host "ERROR: Repository clone failed. Please check your URL and authentication." -ForegroundColor Red
+        exit 1
+    }
 }
 Write-Host "Repository cloned/updated" -ForegroundColor Green
 
