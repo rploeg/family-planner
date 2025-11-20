@@ -23,17 +23,18 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            # Navigate to backend directory
-            cd C:\family-planner\backend
+            # Navigate to repository directory
+            cd C:\family-planner\repo
             
             # Pull latest changes
             git pull origin master
             
-            # Install dependencies
+            # Install backend dependencies
+            cd family-planner-backend
             npm install
             
-            # Restart backend service (using PM2 or Windows Service)
-            pm2 restart family-planner-backend || pm2 start server.js --name family-planner-backend
+            # Restart backend service
+            pm2 restart family-planner-backend
 
   deploy-frontend:
     name: Deploy Frontend
@@ -64,8 +65,8 @@ jobs:
           username: ${{ secrets.WINDOWS_SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          source: "family-planner/build/*"
-          target: "C:/family-planner/frontend"
+          source: "family-planner/build/"
+          target: "C:/family-planner/frontend/"
           strip_components: 2
           rm: true
       
@@ -77,5 +78,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            # Restart frontend service (using PM2 or IIS)
+            # Restart frontend service
+            pm2 restart family-planner-frontend
             pm2 restart family-planner-frontend || pm2 serve C:\family-planner\frontend\build 3000 --name family-planner-frontend --spa
