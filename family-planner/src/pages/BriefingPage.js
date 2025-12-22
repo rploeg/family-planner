@@ -104,6 +104,13 @@ const BriefingPage = () => {
     return events.filter(event => event.date === tomorrowStr);
   };
 
+  const getDayAfterTomorrowEvents = () => {
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 2);
+    const dayAfterStr = `${dayAfter.getFullYear()}-${String(dayAfter.getMonth() + 1).padStart(2, '0')}-${String(dayAfter.getDate()).padStart(2, '0')}`;
+    return events.filter(event => event.date === dayAfterStr);
+  };
+
   const getTodayDateString = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -115,9 +122,27 @@ const BriefingPage = () => {
     return `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
   };
 
+  const getDayAfterTomorrowDateString = () => {
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 2);
+    return `${dayAfter.getFullYear()}-${String(dayAfter.getMonth() + 1).padStart(2, '0')}-${String(dayAfter.getDate()).padStart(2, '0')}`;
+  };
+
+  const getDayAfterTomorrowLabel = () => {
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 2);
+    return dayAfter.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : 'en-US', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
+    });
+  };
+
   const tomorrowEvents = getTomorrowEvents();
+  const dayAfterTomorrowEvents = getDayAfterTomorrowEvents();
   const todayMeals = getMealsForDate(getTodayDateString());
   const tomorrowMeals = getMealsForDate(getTomorrowDateString());
+  const dayAfterTomorrowMeals = getMealsForDate(getDayAfterTomorrowDateString());
 
   const getMealIcon = (type) => {
     const icons = {
@@ -243,6 +268,35 @@ const BriefingPage = () => {
         ) : (
           <div className="briefing-events">
             {tomorrowEvents.map(event => (
+              <EventCard key={event.id} event={event} onClick={() => {}} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Day After Tomorrow's Events Section */}
+      <section className="briefing-section events-section">
+        <h3 className="section-title">
+          {getDayAfterTomorrowLabel()} ({dayAfterTomorrowEvents.length})
+        </h3>
+        
+        {/* Day After Tomorrow's Meals */}
+        {dayAfterTomorrowMeals.length > 0 && (
+          <div className="meals-preview">
+            {dayAfterTomorrowMeals.map(meal => (
+              <div key={meal.id} className="meal-preview-item">
+                <span className="meal-preview-icon">{getMealIcon(meal.type)}</span>
+                <span className="meal-preview-title">{meal.title}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {dayAfterTomorrowEvents.length === 0 ? (
+          <p className="empty-message">{t('calendar.noEvents')}</p>
+        ) : (
+          <div className="briefing-events">
+            {dayAfterTomorrowEvents.map(event => (
               <EventCard key={event.id} event={event} onClick={() => {}} />
             ))}
           </div>
