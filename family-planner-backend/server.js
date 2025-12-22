@@ -438,6 +438,48 @@ app.get('/api/loxone/status', async (req, res) => {
   }
 });
 
+app.get('/api/loxone/energy', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const energy = await loxoneService.getEnergyData();
+    res.json(energy);
+  } catch (error) {
+    console.error('Error fetching energy data:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/loxone/sensors', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const sensors = await loxoneService.getInfoSensors();
+    res.json(sensors);
+  } catch (error) {
+    console.error('Error fetching sensors:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/loxone/lights', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const lights = await loxoneService.getLights();
+    res.json(lights);
+  } catch (error) {
+    console.error('Error fetching lights:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Initialize CalDAV on startup
 (async () => {
   try {

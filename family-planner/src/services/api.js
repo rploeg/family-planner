@@ -161,10 +161,23 @@ class ApiService {
     return this.request('/api/loxone/status');
   }
 
+  async getLoxoneEnergy() {
+    return this.request('/api/loxone/energy');
+  }
+
+  async getLoxoneSensors() {
+    return this.request('/api/loxone/sensors');
+  }
+
+  async getLoxoneLights() {
+    return this.request('/api/loxone/lights');
+  }
+
   // ============= HEALTH CHECK =============
   async healthCheck() {
     return this.request('/health');
   }
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+export default apiService;

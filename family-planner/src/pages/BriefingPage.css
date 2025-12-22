@@ -40,6 +40,10 @@
   grid-column: 1 / -1;
 }
 
+.loxone-live-section {
+  grid-column: 1 / -1;
+}
+
 .current-time {
   display: none;
 }
@@ -614,8 +618,88 @@
   border-color: #8BC34A;
 }
 
+/* Loxone Live Data Section */
+.loxone-live-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.loxone-live-card {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.loxone-live-card:hover {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(139, 195, 74, 0.3);
+}
+
+.loxone-live-card.energy-card {
+  border-left: 3px solid #FFC107;
+}
+
+.loxone-live-card.temp-card {
+  border-left: 3px solid #FF5722;
+}
+
+.loxone-live-card.humidity-card {
+  border-left: 3px solid #2196F3;
+}
+
+.loxone-live-card.occupancy-card {
+  border-left: 3px solid #9C27B0;
+}
+
+.loxone-live-card.light-card {
+  border-left: 3px solid #FFC107;
+}
+
+.loxone-live-card .card-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.loxone-live-card .card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.loxone-live-card .card-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.loxone-live-card .card-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.loxone-live-card .card-sublabel {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
 @media (max-width: 768px) {
   .rooms-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .loxone-live-grid {
     grid-template-columns: 1fr;
   }
 

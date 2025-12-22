@@ -84,6 +84,21 @@ class LoxoneService {
     }
   }
 
+  // Get a single state value by control UUID and state name
+  async getStateValue(controlUuid, stateName) {
+    try {
+      // Build path - if stateName is empty, just use the control UUID
+      const path = stateName ? `/jdev/sps/io/${controlUuid}/${stateName}` : `/jdev/sps/io/${controlUuid}`;
+      const response = await this.makeRequest(path);
+      if (response && response.LL && response.LL.value !== undefined && response.LL.Code === '200') {
+        return parseFloat(response.LL.value);
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
   // Get all Intelligent Room Controllers with their current temperatures
   async getRoomTemperatures() {
     try {
@@ -97,14 +112,37 @@ class LoxoneService {
       // Find all Intelligent Room Controllers
       for (const [uuid, control] of Object.entries(structure.controls)) {
         if (control.type === 'IRoomControllerV2' || control.type === 'IntelligentRoomController') {
+          // Room controllers expose their main state as the primary value
+          // Individual sensors may need to be queried via their state UUIDs
+          const mainValue = await this.getStateValue(uuid, '');
+          
+          // Get room name from structure
+          const roomUuid = control.room;
+          const roomName = structure.rooms && structure.rooms[roomUuid] 
+            ? structure.rooms[roomUuid].name 
+            : 'Unknown';
+          
+          // Check for presence detector in the same room
+          let isOccupied = false;
+          for (const [presenceUuid, presenceControl] of Object.entries(structure.controls)) {
+            if (presenceControl.type === 'PresenceDetector' && presenceControl.room === roomUuid) {
+              const presenceValue = await this.getStateValue(presenceUuid, 'active');
+              isOccupied = presenceValue === 1;
+              break;
+            }
+          }
+          
           rooms.push({
             uuid: uuid,
             name: control.name,
-            room: control.room || control.cat || 'Unknown',
-            actualTemp: control.states?.tempActual || null,
-            targetTemp: control.states?.tempTarget || null,
-            mode: control.states?.mode || 0,
-            occupied: control.states?.occupied || false
+            room: roomName,
+            mode: mainValue,
+            // These values need to be fetched via subcontrols or state UUIDs
+            actualTemp: null,
+            targetTemp: null,
+            humidity: null,
+            co2: null,
+            occupied: isOccupied
           });
         }
       }
@@ -112,6 +150,137 @@ class LoxoneService {
       return rooms;
     } catch (error) {
       console.error('Failed to get room temperatures:', error.message);
+      return [];
+    }
+  }
+
+  // Get energy meter data
+  async getEnergyData() {
+    try {
+      const structure = await this.getStructureFile();
+      if (!structure || !structure.controls) {
+        return null;
+      }
+
+      // Find P1 meter
+      for (const [uuid, control] of Object.entries(structure.controls)) {
+        if (control.type === 'Meter') {
+          // For meters, query the control UUID directly to get current usage
+          // Other stats need the full state names
+          const [currentUsage, totalDay, totalWeek, totalMonth, totalYear, returnDay] = await Promise.all([
+            this.getStateValue(uuid, ''),  // Empty string for main value
+            this.getStateValue(uuid, 'totalday'),
+            this.getStateValue(uuid, 'totalweek'),
+            this.getStateValue(uuid, 'totalmonth'),
+            this.getStateValue(uuid, 'totalyear'),
+            this.getStateValue(uuid, 'totalnegday')
+          ]);
+          
+          return {
+            uuid: uuid,
+            name: control.name,
+            currentUsage: currentUsage || 0,
+            totalDay: totalDay || 0,
+            totalWeek: totalWeek || 0,
+            totalMonth: totalMonth || 0,
+            totalYear: totalYear || 0,
+            returnDay: returnDay || 0
+          };
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to get energy data:', error.message);
+      return null;
+    }
+  }
+
+  // Get analog sensor values (temperature, humidity, etc.)
+  async getInfoSensors() {
+    try {
+      const structure = await this.getStructureFile();
+      if (!structure || !structure.controls) {
+        return [];
+      }
+
+      const sensors = [];
+      
+      for (const [uuid, control] of Object.entries(structure.controls)) {
+        if (control.type === 'InfoOnlyAnalog') {
+          // InfoOnlyAnalog controls return their value directly when queried without a state name
+          const value = await this.getStateValue(uuid, '');
+          
+          // Get room name from structure
+          const roomUuid = control.room;
+          const roomName = structure.rooms && structure.rooms[roomUuid] 
+            ? structure.rooms[roomUuid].name 
+            : 'Unknown';
+          
+          // Detect sensor type based on name
+          const lowerName = control.name.toLowerCase();
+          let sensorType = 'unknown';
+          if (lowerName.includes('temp')) {
+            sensorType = 'temperature';
+          } else if (lowerName.includes('humid')) {
+            sensorType = 'humidity';
+          } else if (lowerName.includes('co2')) {
+            sensorType = 'co2';
+          } else if (lowerName.includes('light')) {
+            sensorType = 'light';
+          }
+          
+          sensors.push({
+            uuid: uuid,
+            name: control.name,
+            room: roomName,
+            type: sensorType,
+            value: value || 0
+          });
+        }
+      }
+      
+      return sensors;
+    } catch (error) {
+      console.error('Failed to get info sensors:', error.message);
+      return [];
+    }
+  }
+
+  // Get light controllers
+  async getLights() {
+    try {
+      const structure = await this.getStructureFile();
+      if (!structure || !structure.controls) {
+        return [];
+      }
+
+      const lights = [];
+      
+      for (const [uuid, control] of Object.entries(structure.controls)) {
+        if (control.type === 'LightControllerV2') {
+          // Get active mood (0 = off, >0 = on)
+          const activeMood = await this.getStateValue(uuid, 'activeMoods');
+          
+          // Get room name from structure
+          const roomUuid = control.room;
+          const roomName = structure.rooms && structure.rooms[roomUuid] 
+            ? structure.rooms[roomUuid].name 
+            : 'Unknown';
+          
+          lights.push({
+            uuid: uuid,
+            name: control.name,
+            room: roomName,
+            isOn: activeMood > 0,
+            activeMood: activeMood || 0
+          });
+        }
+      }
+      
+      return lights;
+    } catch (error) {
+      console.error('Failed to get lights:', error.message);
       return [];
     }
   }

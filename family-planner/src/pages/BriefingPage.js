@@ -14,10 +14,12 @@ const BriefingPage = () => {
   const { users } = useLoxone();
   const { t, i18n } = useTranslation();
   const [weather, setWeather] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [rooms, setRooms] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [loxoneAvailable, setLoxoneAvailable] = useState(false);
+  const [energyData, setEnergyData] = useState(null);
+  const [sensorsData, setSensorsData] = useState(null);
+  const [lightsData, setLightsData] = useState(null);
   const todayEvents = getTodayEvents();
 
   // Debug logging
@@ -40,8 +42,6 @@ const BriefingPage = () => {
       setWeather(data);
     } catch (error) {
       console.error('Failed to load weather:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -49,16 +49,26 @@ const BriefingPage = () => {
     try {
       // Check if Loxone is available
       const status = await api.getLoxoneStatus();
+      console.log('Loxone status:', status);
       setLoxoneAvailable(status.initialized);
 
       if (status.initialized) {
-        // Load real room data and suggestions
-        const [roomsData, suggestionsData] = await Promise.all([
+        // Load real room data, suggestions, energy and sensors
+        const [roomsData, suggestionsData, energyResponse, sensorsResponse, lightsResponse] = await Promise.all([
           api.getLoxoneRooms(),
-          api.getLoxoneSuggestions()
+          api.getLoxoneSuggestions(),
+          api.getLoxoneEnergy(),
+          api.getLoxoneSensors(),
+          api.getLoxoneLights()
         ]);
+        console.log('Energy data:', energyResponse);
+        console.log('Sensors data:', sensorsResponse);
+        console.log('Lights data:', lightsResponse);
         setRooms(roomsData);
         setSuggestions(suggestionsData);
+        setEnergyData(energyResponse);
+        setSensorsData(sensorsResponse);
+        setLightsData(lightsResponse);
       } else {
         // Use sample data to showcase the UI
         const sampleRooms = [
@@ -119,13 +129,6 @@ const BriefingPage = () => {
     return icons[type] || '🍽️';
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return i18n.language === 'nl' ? 'Goedemorgen' : 'Good Morning';
-    if (hour < 18) return i18n.language === 'nl' ? 'Goedemiddag' : 'Good Afternoon';
-    return i18n.language === 'nl' ? 'Goedenavond' : 'Good Evening';
-  };
-
   const getOutdoorEvents = () => {
     return todayEvents.filter(event => {
       const location = event.location?.toLowerCase() || '';
@@ -139,6 +142,15 @@ const BriefingPage = () => {
   const outdoorEvents = getOutdoorEvents();
   const showWeatherWarning = outdoorEvents.length > 0 && weather && 
     !weatherService.isOutdoorFriendly(weather).suitable;
+
+  // Debug logging
+  console.log('BriefingPage render:', {
+    loxoneAvailable,
+    energyData,
+    sensorsData,
+    lightsData,
+    showLiveData: loxoneAvailable && (energyData || sensorsData || lightsData)
+  });
 
   return (
     <div className="briefing-page">
@@ -237,6 +249,64 @@ const BriefingPage = () => {
         )}
       </section>
 
+      {/* Loxone Live Data Section */}
+      {loxoneAvailable && (energyData || sensorsData || lightsData) && (
+        <section className="briefing-section loxone-live-section">
+          <h3 className="section-title">
+            ⚡ {i18n.language === 'nl' ? 'Live Data' : 'Live Data'}
+          </h3>
+          <div className="loxone-live-grid">
+            {/* Energy Meter */}
+            {energyData && energyData.currentUsage !== null && (
+              <div className="loxone-live-card energy-card">
+                <div className="card-icon">⚡</div>
+                <div className="card-content">
+                  <div className="card-label">{i18n.language === 'nl' ? 'Huidig Verbruik' : 'Current Usage'}</div>
+                  <div className="card-value">{(energyData.currentUsage * 1000).toFixed(0)} W</div>
+                  <div className="card-sublabel">P1 Meter</div>
+                </div>
+              </div>
+            )}
+            
+            {/* Temperature Sensor */}
+            {sensorsData && sensorsData.find(s => s.type === 'temperature') && (
+              <div className="loxone-live-card temp-card">
+                <div className="card-icon">🌡️</div>
+                <div className="card-content">
+                  <div className="card-label">{i18n.language === 'nl' ? 'Temperatuur' : 'Temperature'}</div>
+                  <div className="card-value">{sensorsData.find(s => s.type === 'temperature').value.toFixed(1)}°C</div>
+                  <div className="card-sublabel">{sensorsData.find(s => s.type === 'temperature').name}</div>
+                </div>
+              </div>
+            )}
+            
+            {/* Humidity Sensor */}
+            {sensorsData && sensorsData.find(s => s.type === 'humidity') && (
+              <div className="loxone-live-card humidity-card">
+                <div className="card-icon">💧</div>
+                <div className="card-content">
+                  <div className="card-label">{i18n.language === 'nl' ? 'Luchtvochtigheid' : 'Humidity'}</div>
+                  <div className="card-value">{sensorsData.find(s => s.type === 'humidity').value.toFixed(0)}%</div>
+                  <div className="card-sublabel">{sensorsData.find(s => s.type === 'humidity').name}</div>
+                </div>
+              </div>
+            )}
+            
+            {/* Occupancy Status */}
+            {rooms && rooms.length > 0 && rooms[0].room && (
+              <div className="loxone-live-card occupancy-card">
+                <div className="card-icon">{rooms[0].occupied ? '👤' : '🚪'}</div>
+                <div className="card-content">
+                  <div className="card-label">{i18n.language === 'nl' ? 'Aanwezigheid' : 'Occupancy'}</div>
+                  <div className="card-value">{rooms[0].occupied ? (i18n.language === 'nl' ? 'Bezet' : 'Occupied') : (i18n.language === 'nl' ? 'Leeg' : 'Empty')}</div>
+                  <div className="card-sublabel">{rooms[0].room}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Loxone Suggestions Section */}
       {loxoneAvailable && suggestions.length > 0 && (
         <section className="briefing-section suggestions-section">
@@ -258,46 +328,6 @@ const BriefingPage = () => {
                     {suggestion.action}
                   </button>
                 )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Room Status Section */}
-      {loxoneAvailable && rooms.length > 0 && (
-        <section className="briefing-section rooms-section">
-          <h3 className="section-title">
-            🏠 {i18n.language === 'nl' ? 'Kamer Status' : 'Room Status'}
-          </h3>
-          <div className="rooms-grid">
-            {rooms.map((room, index) => (
-              <div key={index} className="room-card">
-                <div className="room-header">
-                  <span className="room-name">{room.name}</span>
-                  {room.status && (
-                    <span className={`room-status status-${room.status.toLowerCase().replace(/\s/g, '-')}`}>
-                      {room.status}
-                    </span>
-                  )}
-                </div>
-                <div className="room-info">
-                  {room.actualTemp && (
-                    <div className="room-temp">
-                      <span className="temp-icon">🌡️</span>
-                      <span className="temp-value">{room.actualTemp.toFixed(1)}°C</span>
-                      {room.targetTemp && room.actualTemp !== room.targetTemp && (
-                        <span className="temp-target">→ {room.targetTemp}°C</span>
-                      )}
-                    </div>
-                  )}
-                  {room.occupied && (
-                    <div className="room-occupied">
-                      <span className="occupied-icon">👤</span>
-                      <span>{i18n.language === 'nl' ? 'Bezet' : 'Occupied'}</span>
-                    </div>
-                  )}
-                </div>
               </div>
             ))}
           </div>
