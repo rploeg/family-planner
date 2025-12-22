@@ -34,6 +34,14 @@ const BriefingPage = () => {
   useEffect(() => {
     loadWeather();
     loadLoxoneData();
+
+    // Refresh Loxone data every 60 seconds
+    const loxoneInterval = setInterval(() => {
+      loadLoxoneData();
+    }, 60000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(loxoneInterval);
   }, []);
 
   const loadWeather = async () => {
