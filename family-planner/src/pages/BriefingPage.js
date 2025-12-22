@@ -387,29 +387,6 @@ const BriefingPage = () => {
           </div>
         </section>
       )}
-
-      {/* Family Status Section */}
-      <section className="briefing-section family-section">
-        <h3 className="section-title">
-          {i18n.language === 'nl' ? 'Familie Status' : 'Family Status'}
-        </h3>
-        <div className="family-status-grid">
-          {users.map(user => (
-            <div key={user.uuid} className="family-member-status">
-              <div className="member-avatar">
-                {user.firstName.charAt(0)}
-              </div>
-              <div className="member-info">
-                <span className="member-name">{user.firstName}</span>
-                <span className="member-status">{user.status || 'Unknown'}</span>
-              </div>
-              <div className={`status-indicator ${user.location ? 'home' : 'away'}`}>
-                {user.location ? '🏠' : '🚪'}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 };
