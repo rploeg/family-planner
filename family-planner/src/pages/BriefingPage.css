@@ -384,16 +384,18 @@
 }
 
 @media (max-width: 1024px) {
-  .briefing-page {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .hourly-forecast {
     grid-template-columns: repeat(4, 1fr);
   }
 
   .weather-details {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .briefing-page {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
