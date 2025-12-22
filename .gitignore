@@ -40,3 +40,13 @@ build/
 
 # Package files
 *.pkg
+
+# Test and debug scripts (development only)
+family-planner-backend/check-*.js
+family-planner-backend/debug-*.js
+family-planner-backend/explore-*.js
+family-planner-backend/get-*.js
+family-planner-backend/parse-*.js
+family-planner-backend/query-*.js
+family-planner-backend/test-*.js
+family-planner-backend/try-*.js
