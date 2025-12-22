@@ -58,7 +58,7 @@ Write-Host "[OK] Frontend dependencies updated" -ForegroundColor Green
 Write-Host ""
 
 # Rebuild frontend
-Write-Host "[5/5] Building frontend..." -ForegroundColor Yellow
+Write-Host "[5/6] Building frontend..." -ForegroundColor Yellow
 npm run build
 
 if ($LASTEXITCODE -ne 0) {
@@ -69,15 +69,28 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "[OK] Frontend built successfully" -ForegroundColor Green
 Write-Host ""
 
+# Restart frontend serve
+Write-Host "[6/6] Restarting frontend service..." -ForegroundColor Yellow
+pm2 restart family-planner-frontend
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Warning: Failed to restart frontend with PM2" -ForegroundColor Yellow
+    Write-Host "You may need to manually restart the serve process" -ForegroundColor Yellow
+}
+else {
+    Write-Host "[OK] Frontend restarted successfully" -ForegroundColor Green
+}
+Write-Host ""
+
 # Summary
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Update Complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Backend: Restarted automatically (PM2)" -ForegroundColor Green
-Write-Host "Frontend: Using new build" -ForegroundColor Green
+Write-Host "Frontend: Rebuilt and restarted (PM2)" -ForegroundColor Green
 Write-Host ""
-Write-Host "If frontend serve was running, restart it:" -ForegroundColor Yellow
-Write-Host "  1. Stop the current serve process (Ctrl+C)" -ForegroundColor White
-Write-Host "  2. Run: serve -s build -l 3000" -ForegroundColor White
+Write-Host "If PM2 restart failed, manually restart frontend:" -ForegroundColor Yellow
+Write-Host "  pm2 stop family-planner-frontend" -ForegroundColor White
+Write-Host "  pm2 start serve --name family-planner-frontend -- -s build -l 3000" -ForegroundColor White
 Write-Host ""
