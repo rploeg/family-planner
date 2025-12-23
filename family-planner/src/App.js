@@ -23,7 +23,7 @@ function App() {
           <MealsProvider>
             <ListsProvider>
               <div className="app">
-                <Header />
+                <Header onNavigate={setCurrentPage} />
                 
                 <main className="main-content">
                   {currentPage === 'briefing' && <BriefingPage />}

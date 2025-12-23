@@ -702,6 +702,161 @@
   font-size: 11px;
   color: #666;
   margin-top: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Smart Alerts */
+.alerts-section {
+  grid-column: 1 / -1;
+}
+
+.smart-alerts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.smart-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1;
+  min-width: 200px;
+}
+
+.smart-alert.priority-high {
+  background: rgba(255, 82, 82, 0.15);
+  border: 1px solid rgba(255, 82, 82, 0.3);
+  color: #FF5252;
+}
+
+.smart-alert.priority-medium {
+  background: rgba(255, 152, 0, 0.15);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  color: #FF9800;
+}
+
+.smart-alert.priority-low {
+  background: rgba(139, 195, 74, 0.15);
+  border: 1px solid rgba(139, 195, 74, 0.3);
+  color: #8BC34A;
+}
+
+.alert-icon {
+  font-size: 18px;
+}
+
+.alert-message {
+  flex: 1;
+}
+
+/* Today's Summary Card */
+.summary-section {
+  grid-column: 1 / -1;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.15) 0%, rgba(104, 159, 56, 0.1) 100%);
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 1px solid rgba(139, 195, 74, 0.2);
+}
+
+.summary-greeting {
+  margin-bottom: 12px;
+}
+
+.summary-greeting-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #8BC34A;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  min-width: 80px;
+}
+
+.stat-icon {
+  font-size: 20px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Enhanced Live Data Cards */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.trend-indicator {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.trend-up {
+  color: #FF5252;
+  background: rgba(255, 82, 82, 0.1);
+}
+
+.trend-down {
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.trend-stable {
+  color: #999;
+  background: rgba(153, 153, 153, 0.1);
+}
+
+.card-cost {
+  font-size: 10px;
+  color: #8BC34A;
+  font-weight: 600;
+}
+
+.comfort-badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 @media (max-width: 768px) {
@@ -716,4 +871,20 @@
   .suggestions-grid {
     grid-template-columns: 1fr;
   }
+
+  .smart-alerts {
+    flex-direction: column;
+  }
+
+  .smart-alert {
+    min-width: 100%;
+  }
+
+  .summary-stats {
+    flex-wrap: wrap;
+  }
+
+  .summary-stat {
+    flex: 1;
+    min-width: 70px;  }
 }

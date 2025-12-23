@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../context/CalendarContext';
 import { useMeals } from '../context/MealsContext';
 import { useLoxone } from '../context/LoxoneContext';
+import { useLists } from '../context/ListsContext';
 import { useTranslation } from 'react-i18next';
 import weatherService from '../services/weatherService';
 import api from '../services/api';
@@ -12,6 +13,7 @@ const BriefingPage = () => {
   const { getTodayEvents, events } = useCalendar();
   const { getMealsForDate } = useMeals();
   const { users } = useLoxone();
+  const { lists } = useLists();
   const { t, i18n } = useTranslation();
   const [weather, setWeather] = useState(null);
   const [rooms, setRooms] = useState([]);
@@ -20,6 +22,7 @@ const BriefingPage = () => {
   const [energyData, setEnergyData] = useState(null);
   const [sensorsData, setSensorsData] = useState(null);
   const [lightsData, setLightsData] = useState(null);
+  const [prevEnergyData, setPrevEnergyData] = useState(null);
   const todayEvents = getTodayEvents();
 
   // Debug logging
@@ -104,6 +107,119 @@ const BriefingPage = () => {
       setLoxoneAvailable(false);
     }
   };
+
+  // Calculate total uncompleted items across all lists
+  const getTotalListItems = () => {
+    return lists.reduce((total, list) => {
+      return total + list.items.filter(item => !item.completed && !item.checked).length;
+    }, 0);
+  };
+
+  // Calculate power trend
+  const getPowerTrend = () => {
+    if (!energyData || !prevEnergyData) return null;
+    const diff = energyData.currentUsage - prevEnergyData.currentUsage;
+    if (diff > 0.05) return 'up';
+    if (diff < -0.05) return 'down';
+    return 'stable';
+  };
+
+  // Get comfort level for temperature
+  const getTemperatureComfort = (temp) => {
+    if (temp < 19) return { level: 'cold', color: '#4FC3F7', icon: '🥶' };
+    if (temp > 22) return { level: 'warm', color: '#FF9800', icon: '🥵' };
+    return { level: 'comfortable', color: '#8BC34A', icon: '😊' };
+  };
+
+  // Get humidity status
+  const getHumidityStatus = (humidity) => {
+    if (humidity < 30) return { status: 'dry', color: '#FF9800', warning: true };
+    if (humidity > 60) return { status: 'humid', color: '#FF9800', warning: true };
+    return { status: 'good', color: '#8BC34A', warning: false };
+  };
+
+  // Generate smart alerts
+  const getSmartAlerts = () => {
+    const alerts = [];
+    const totalItems = getTotalListItems();
+
+    // Shopping list reminder
+    if (totalItems >= 5) {
+      alerts.push({
+        type: 'shopping',
+        icon: '🛒',
+        message: i18n.language === 'nl' 
+          ? `Boodschappenlijst heeft ${totalItems} items`
+          : `Shopping list has ${totalItems} items`,
+        priority: 'low'
+      });
+    }
+
+    // Lights on in empty room
+    if (lightsData && rooms && rooms.length > 0) {
+      const emptyWithLights = rooms.filter(room => !room.occupied && lightsData.some(light => light.isOn));
+      if (emptyWithLights.length > 0) {
+        alerts.push({
+          type: 'lights',
+          icon: '💡',
+          message: i18n.language === 'nl'
+            ? 'Lichten aan in lege kamer'
+            : 'Lights on in empty room',
+          priority: 'medium'
+        });
+      }
+    }
+
+    // High power usage
+    if (energyData && energyData.currentUsage > 0.5) {
+      alerts.push({
+        type: 'power',
+        icon: '⚡',
+        message: i18n.language === 'nl'
+          ? `Hoog verbruik: ${(energyData.currentUsage * 1000).toFixed(0)}W`
+          : `High usage: ${(energyData.currentUsage * 1000).toFixed(0)}W`,
+        priority: 'medium'
+      });
+    }
+
+    // Outdoor event weather warning
+    const outdoorEvents = todayEvents.filter(event => {
+      const location = event.location?.toLowerCase() || '';
+      const title = event.title?.toLowerCase() || '';
+      return location.includes('park') || location.includes('buiten') || 
+             location.includes('outdoor') || title.includes('outdoor') ||
+             title.includes('buiten') || location.includes('tuin');
+    });
+
+    if (outdoorEvents.length > 0 && weather && !weatherService.isOutdoorFriendly(weather).suitable) {
+      alerts.push({
+        type: 'weather',
+        icon: '⚠️',
+        message: i18n.language === 'nl'
+          ? `${outdoorEvents.length} buitenevenement(en) - slecht weer verwacht`
+          : `${outdoorEvents.length} outdoor event(s) - bad weather expected`,
+        priority: 'high'
+      });
+    }
+
+    return alerts.sort((a, b) => {
+      const priority = { high: 3, medium: 2, low: 1 };
+      return priority[b.priority] - priority[a.priority];
+    });
+  };
+
+  // Update prevEnergyData for trend calculation
+  useEffect(() => {
+    if (energyData) {
+      const timer = setTimeout(() => {
+        setPrevEnergyData(energyData);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [energyData]);
+
+  const smartAlerts = getSmartAlerts();
+  const powerTrend = getPowerTrend();
 
   const getTomorrowEvents = () => {
     const tomorrow = new Date();
@@ -197,6 +313,57 @@ const BriefingPage = () => {
             year: 'numeric'
           })}
         </p>
+      </section>
+
+      {/* Smart Alerts Banner */}
+      {smartAlerts.length > 0 && (
+        <section className="briefing-section alerts-section">
+          <div className="smart-alerts">
+            {smartAlerts.map((alert, index) => (
+              <div key={index} className={`smart-alert priority-${alert.priority}`}>
+                <span className="alert-icon">{alert.icon}</span>
+                <span className="alert-message">{alert.message}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Today's Summary Card */}
+      <section className="briefing-section summary-section">
+        <div className="summary-card">
+          <div className="summary-greeting">
+            <span className="summary-greeting-text">
+              {(() => {
+                const hour = new Date().getHours();
+                if (hour < 12) return i18n.language === 'nl' ? 'Goedemorgen' : 'Good Morning';
+                if (hour < 18) return i18n.language === 'nl' ? 'Goedemiddag' : 'Good Afternoon';
+                return i18n.language === 'nl' ? 'Goedenavond' : 'Good Evening';
+              })()}
+            </span>
+          </div>
+          <div className="summary-stats">
+            <div className="summary-stat">
+              <span className="stat-icon">📅</span>
+              <span className="stat-value">{todayEvents.length}</span>
+              <span className="stat-label">{i18n.language === 'nl' ? 'Events' : 'Events'}</span>
+            </div>
+            {energyData && (
+              <div className="summary-stat">
+                <span className="stat-icon">⚡</span>
+                <span className="stat-value">{(energyData.currentUsage * 1000).toFixed(0)}W</span>
+                <span className="stat-label">Power</span>
+              </div>
+            )}
+            {sensorsData && sensorsData.find(s => s.type === 'temperature') && (
+              <div className="summary-stat">
+                <span className="stat-icon">🌡️</span>
+                <span className="stat-value">{sensorsData.find(s => s.type === 'temperature').value.toFixed(1)}°</span>
+                <span className="stat-label">Temp</span>
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* Weather Warning for Outdoor Events */}
@@ -323,36 +490,69 @@ const BriefingPage = () => {
               <div className="loxone-live-card energy-card">
                 <div className="card-icon">⚡</div>
                 <div className="card-content">
-                  <div className="card-label">{i18n.language === 'nl' ? 'Huidig Verbruik' : 'Current Usage'}</div>
+                  <div className="card-header">
+                    <div className="card-label">{i18n.language === 'nl' ? 'Huidig Verbruik' : 'Current Usage'}</div>
+                    {powerTrend && (
+                      <span className={`trend-indicator trend-${powerTrend}`}>
+                        {powerTrend === 'up' ? '↑' : powerTrend === 'down' ? '↓' : '→'}
+                      </span>
+                    )}
+                  </div>
                   <div className="card-value">{(energyData.currentUsage * 1000).toFixed(0)} W</div>
-                  <div className="card-sublabel">P1 Meter</div>
+                  <div className="card-sublabel">
+                    <span>P1 Meter</span>
+                    <span className="card-cost">≈ €{(energyData.currentUsage * 0.35).toFixed(2)}/h</span>
+                  </div>
                 </div>
               </div>
             )}
             
             {/* Temperature Sensor */}
-            {sensorsData && sensorsData.find(s => s.type === 'temperature') && (
-              <div className="loxone-live-card temp-card">
-                <div className="card-icon">🌡️</div>
-                <div className="card-content">
-                  <div className="card-label">{i18n.language === 'nl' ? 'Temperatuur' : 'Temperature'}</div>
-                  <div className="card-value">{sensorsData.find(s => s.type === 'temperature').value.toFixed(1)}°C</div>
-                  <div className="card-sublabel">{sensorsData.find(s => s.type === 'temperature').name}</div>
+            {sensorsData && sensorsData.find(s => s.type === 'temperature') && (() => {
+              const tempSensor = sensorsData.find(s => s.type === 'temperature');
+              const comfort = getTemperatureComfort(tempSensor.value);
+              return (
+                <div className="loxone-live-card temp-card" style={{ borderColor: comfort.color }}>
+                  <div className="card-icon">{comfort.icon}</div>
+                  <div className="card-content">
+                    <div className="card-label">{i18n.language === 'nl' ? 'Temperatuur' : 'Temperature'}</div>
+                    <div className="card-value" style={{ color: comfort.color }}>{tempSensor.value.toFixed(1)}°C</div>
+                    <div className="card-sublabel">
+                      <span>{tempSensor.name}</span>
+                      <span className="comfort-badge" style={{ background: comfort.color }}>
+                        {comfort.level === 'cold' ? (i18n.language === 'nl' ? 'Koud' : 'Cold') : 
+                         comfort.level === 'warm' ? (i18n.language === 'nl' ? 'Warm' : 'Warm') :
+                         (i18n.language === 'nl' ? 'Comfortabel' : 'Comfortable')}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             
             {/* Humidity Sensor */}
-            {sensorsData && sensorsData.find(s => s.type === 'humidity') && (
-              <div className="loxone-live-card humidity-card">
-                <div className="card-icon">💧</div>
-                <div className="card-content">
-                  <div className="card-label">{i18n.language === 'nl' ? 'Luchtvochtigheid' : 'Humidity'}</div>
-                  <div className="card-value">{sensorsData.find(s => s.type === 'humidity').value.toFixed(0)}%</div>
-                  <div className="card-sublabel">{sensorsData.find(s => s.type === 'humidity').name}</div>
+            {sensorsData && sensorsData.find(s => s.type === 'humidity') && (() => {
+              const humiditySensor = sensorsData.find(s => s.type === 'humidity');
+              const status = getHumidityStatus(humiditySensor.value);
+              return (
+                <div className="loxone-live-card humidity-card" style={{ borderColor: status.color }}>
+                  <div className="card-icon">💧</div>
+                  <div className="card-content">
+                    <div className="card-label">{i18n.language === 'nl' ? 'Luchtvochtigheid' : 'Humidity'}</div>
+                    <div className="card-value" style={{ color: status.color }}>{humiditySensor.value.toFixed(0)}%</div>
+                    <div className="card-sublabel">
+                      <span>{humiditySensor.name}</span>
+                      {status.warning && (
+                        <span className="comfort-badge" style={{ background: status.color }}>
+                          {status.status === 'dry' ? (i18n.language === 'nl' ? 'Droog' : 'Dry') : 
+                           (i18n.language === 'nl' ? 'Vochtig' : 'Humid')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             
             {/* Occupancy Status */}
             {rooms && rooms.length > 0 && rooms[0].room && (

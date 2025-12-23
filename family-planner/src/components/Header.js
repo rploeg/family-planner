@@ -4,14 +4,25 @@ import LanguageSwitcher from './LanguageSwitcher';
 import TimerModal from './TimerModal';
 import weatherService from '../services/weatherService';
 import { useTimer } from '../context/TimerContext';
+import { useLists } from '../context/ListsContext';
 import './Header.css';
 
-const Header = () => {
+const Header = ({ onNavigate }) => {
   const [time, setTime] = useState(new Date());
   const [weather, setWeather] = useState(null);
   const [showTimerModal, setShowTimerModal] = useState(false);
   const { i18n } = useTranslation();
   const { remainingTime, isRunning, isPaused, pauseTimer, resumeTimer, stopTimer, formatTime: formatTimerTime } = useTimer();
+  const { lists } = useLists();
+
+  // Calculate total uncompleted items across all lists
+  const getTotalItems = () => {
+    return lists.reduce((total, list) => {
+      return total + list.items.filter(item => !item.completed && !item.checked).length;
+    }, 0);
+  };
+
+  const totalItems = getTotalItems();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -106,6 +117,14 @@ const Header = () => {
           )}
         </div>
         <div className="header-right">
+          <button 
+            className="shopping-basket-button"
+            onClick={() => onNavigate && onNavigate('lists')}
+            title={i18n.language === 'nl' ? 'Boodschappenlijst' : 'Shopping list'}
+          >
+            🛒
+            {totalItems > 0 && <span className="basket-badge">{totalItems}</span>}
+          </button>
           <span className="time">{formatTime(time)}</span>
           <LanguageSwitcher />
         </div>
