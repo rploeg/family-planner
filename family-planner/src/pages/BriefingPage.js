@@ -315,21 +315,7 @@ const BriefingPage = () => {
         </p>
       </section>
 
-      {/* Smart Alerts Banner */}
-      {smartAlerts.length > 0 && (
-        <section className="briefing-section alerts-section">
-          <div className="smart-alerts">
-            {smartAlerts.map((alert, index) => (
-              <div key={index} className={`smart-alert priority-${alert.priority}`}>
-                <span className="alert-icon">{alert.icon}</span>
-                <span className="alert-message">{alert.message}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Today's Summary Card */}
+      {/* Weather Warning for Outdoor Events
       <section className="briefing-section summary-section">
         <div className="summary-card">
           <div className="summary-greeting">
