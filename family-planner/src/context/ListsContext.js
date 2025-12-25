@@ -76,14 +76,15 @@ export const ListsProvider = ({ children }) => {
   };
 
   // Add item to list
-  const addItem = async (listId, text, addedBy = 'User') => {
+  const addItem = async (listId, text, addedBy = 'User', category = 'household') => {
     try {
       const newItem = {
         id: `${listId}-${Date.now()}`,
         text,
         checked: false,
         completed: false,  // For frontend compatibility
-        addedBy
+        addedBy,
+        category
       };
       await api.addListItem(listId, newItem);
       
@@ -183,6 +184,38 @@ export const ListsProvider = ({ children }) => {
     }
   };
 
+  // Update item category
+  const updateItemCategory = async (listId, itemId, category) => {
+    try {
+      const list = lists.find(l => l.id === listId);
+      const item = list?.items.find(i => i.id === itemId);
+      
+      if (item) {
+        await api.updateListItem(listId, itemId, { 
+          text: item.text,
+          checked: item.checked,
+          category
+        });
+        
+        setLists(prev => prev.map(list => {
+          if (list.id === listId) {
+            return {
+              ...list,
+              items: list.items.map(item =>
+                item.id === itemId ? { ...item, category } : item
+              )
+            };
+          }
+          return list;
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to update item category:', err);
+      setError(err.message);
+      throw err;
+    }
+  };
+
   const value = {
     lists,
     loading,
@@ -193,7 +226,8 @@ export const ListsProvider = ({ children }) => {
     addItem,
     toggleItem,
     deleteItem,
-    clearCompleted
+    clearCompleted,
+    updateItemCategory
   };
 
   return (

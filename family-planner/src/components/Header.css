@@ -191,6 +191,20 @@
   border-radius: 10px;
   min-width: 18px;
   text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.kids-badge {
+  background: #2196F3;
+  margin-left: 2px;
+  padding: 2px 4px;
+  border-radius: 8px;
+  font-size: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
 }
 
 @media (max-width: 480px) {

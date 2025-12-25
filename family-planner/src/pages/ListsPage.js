@@ -4,15 +4,23 @@ import { useTranslation } from 'react-i18next';
 import './ListsPage.css';
 
 const ListsPage = () => {
-  const { lists, createList, deleteList, addItem, toggleItem, deleteItem, clearCompleted } = useLists();
+  const { lists, createList, deleteList, addItem, toggleItem, deleteItem, clearCompleted, updateItemCategory } = useLists();
   const { t } = useTranslation();
   const [selectedList, setSelectedList] = useState(null);
   const [newItemText, setNewItemText] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState('household');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListIcon, setNewListIcon] = useState('📝');
 
   const icons = ['🛒', '📝', '✓', '🏠', '🎯', '💡', '🎨', '🔧', '📚', '🎮', '⚽', '🍕'];
+
+  const categories = [
+    { value: 'household', label: '🏠 Huishouden', icon: '🏠' },
+    { value: 'kids', label: '👶 Kinderen', icon: '👶' },
+    { value: 'personal', label: '👤 Persoonlijk', icon: '👤' }
+  ];
 
   const handleCreateList = () => {
     if (newListName.trim()) {
@@ -26,12 +34,39 @@ const ListsPage = () => {
 
   const handleAddItem = (listId) => {
     if (newItemText.trim()) {
-      addItem(listId, newItemText);
+      addItem(listId, newItemText, 'User', newItemCategory);
       setNewItemText('');
+      setNewItemCategory('household');
     }
   };
 
   const currentList = lists.find(l => l.id === selectedList) || lists[0];
+  
+  // Filter items by category
+  const filteredItems = currentList?.items.filter(item => {
+    if (filterCategory === 'all') return true;
+    return item.category === filterCategory || (!item.category && filterCategory === 'household');
+  }) || [];
+
+  // Count items by category
+  const getCategoryCounts = (list) => {
+    if (!list) return { household: 0, kids: 0, personal: 0, all: 0 };
+    const counts = {
+      household: 0,
+      kids: 0,
+      personal: 0,
+      all: list.items.filter(i => !i.completed).length
+    };
+    list.items.forEach(item => {
+      if (!item.completed) {
+        const cat = item.category || 'household';
+        counts[cat] = (counts[cat] || 0) + 1;
+      }
+    });
+    return counts;
+  };
+
+  const categoryCounts = getCategoryCounts(currentList);
 
   return (
     <div className="lists-page">
@@ -105,6 +140,17 @@ const ListsPage = () => {
                   onChange={(e) => setNewItemText(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddItem(currentList.id)}
                 />
+                <select 
+                  className="category-select"
+                  value={newItemCategory}
+                  onChange={(e) => setNewItemCategory(e.target.value)}
+                >
+                  {categories.map(cat => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.icon} {cat.label.split(' ')[1]}
+                    </option>
+                  ))}
+                </select>
                 <button 
                   className="add-item-btn"
                   onClick={() => handleAddItem(currentList.id)}
@@ -113,11 +159,32 @@ const ListsPage = () => {
                 </button>
               </div>
 
+              {/* Category filter chips */}
+              <div className="category-filters">
+                <button 
+                  className={`filter-chip ${filterCategory === 'all' ? 'active' : ''}`}
+                  onClick={() => setFilterCategory('all')}
+                >
+                  Alles ({categoryCounts.all})
+                </button>
+                {categories.map(cat => (
+                  <button 
+                    key={cat.value}
+                    className={`filter-chip ${filterCategory === cat.value ? 'active' : ''}`}
+                    onClick={() => setFilterCategory(cat.value)}
+                  >
+                    {cat.icon} {cat.label.split(' ')[1]} ({categoryCounts[cat.value] || 0})
+                  </button>
+                ))}
+              </div>
+
               <div className="list-items">
-                {currentList.items.length === 0 ? (
-                  <p className="empty-message">{t('lists.noItems')}</p>
+                {filteredItems.length === 0 ? (
+                  <p className="empty-message">
+                    {filterCategory === 'all' ? t('lists.noItems') : `Geen ${categories.find(c => c.value === filterCategory)?.label.split(' ')[1].toLowerCase()} items`}
+                  </p>
                 ) : (
-                  currentList.items.map(item => (
+                  filteredItems.map(item => (
                     <div key={item.id} className={`list-item ${item.completed ? 'completed' : ''}`}>
                       <input
                         type="checkbox"
@@ -126,12 +193,29 @@ const ListsPage = () => {
                         className="item-checkbox"
                       />
                       <div className="item-content">
-                        <span className="item-text">{item.text}</span>
+                        <div className="item-text-row">
+                          <span className="item-category-badge">
+                            {categories.find(c => c.value === (item.category || 'household'))?.icon}
+                          </span>
+                          <span className="item-text">{item.text}</span>
+                        </div>
                         <span className="item-meta">
                           {item.addedBy && `${item.addedBy} • `}
-                          {new Date(item.addedAt).toLocaleDateString('nl-NL')}
+                          {item.createdAt && new Date(item.createdAt).toLocaleDateString('nl-NL')}
                         </span>
                       </div>
+                      <select
+                        className="item-category-selector"
+                        value={item.category || 'household'}
+                        onChange={(e) => updateItemCategory(currentList.id, item.id, e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {categories.map(cat => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.icon}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         className="delete-item-btn"
                         onClick={() => deleteItem(currentList.id, item.id)}

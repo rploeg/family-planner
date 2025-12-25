@@ -82,11 +82,21 @@ class DatabaseManager {
           text TEXT NOT NULL,
           checked INTEGER DEFAULT 0,
           addedBy TEXT,
+          category TEXT DEFAULT 'household',
           createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
           updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (listId) REFERENCES shopping_lists(id) ON DELETE CASCADE
         )
       `);
+      
+      // Add category column to existing tables if it doesn't exist
+      this.db.run(`
+        ALTER TABLE shopping_list_items ADD COLUMN category TEXT DEFAULT 'household'
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding category column:', err.message);
+        }
+      });
 
       // Settings table
       this.db.run(`

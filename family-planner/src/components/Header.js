@@ -22,7 +22,15 @@ const Header = ({ onNavigate }) => {
     }, 0);
   };
 
+  // Calculate kids items
+  const getKidsItems = () => {
+    return lists.reduce((total, list) => {
+      return total + list.items.filter(item => !item.completed && !item.checked && item.category === 'kids').length;
+    }, 0);
+  };
+
   const totalItems = getTotalItems();
+  const kidsItems = getKidsItems();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -123,7 +131,12 @@ const Header = ({ onNavigate }) => {
             title={i18n.language === 'nl' ? 'Boodschappenlijst' : 'Shopping list'}
           >
             🛒
-            {totalItems > 0 && <span className="basket-badge">{totalItems}</span>}
+            {totalItems > 0 && (
+              <span className="basket-badge">
+                {totalItems}
+                {kidsItems > 0 && <span className="kids-badge">👶{kidsItems}</span>}
+              </span>
+            )}
           </button>
           <span className="time">{formatTime(time)}</span>
           <LanguageSwitcher />

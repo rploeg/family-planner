@@ -236,13 +236,13 @@ app.delete('/api/lists/:id', async (req, res) => {
 app.post('/api/lists/:listId/items', async (req, res) => {
   try {
     const { listId } = req.params;
-    const { id, text, addedBy } = req.body;
+    const { id, text, addedBy, category } = req.body;
     const now = new Date().toISOString();
     
     await db.run(
-      `INSERT INTO shopping_list_items (id, listId, text, checked, addedBy, createdAt, updatedAt)
-       VALUES (?, ?, ?, 0, ?, ?, ?)`,
-      [id, listId, text, addedBy, now, now]
+      `INSERT INTO shopping_list_items (id, listId, text, checked, addedBy, category, createdAt, updatedAt)
+       VALUES (?, ?, ?, 0, ?, ?, ?, ?)`,
+      [id, listId, text, addedBy, category || 'household', now, now]
     );
     
     res.json({ success: true, id });
@@ -254,12 +254,32 @@ app.post('/api/lists/:listId/items', async (req, res) => {
 app.put('/api/lists/:listId/items/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { text, checked } = req.body;
+    const { text, checked, category } = req.body;
     const now = new Date().toISOString();
     
+    const updates = [];
+    const params = [];
+    
+    if (text !== undefined) {
+      updates.push('text = ?');
+      params.push(text);
+    }
+    if (checked !== undefined) {
+      updates.push('checked = ?');
+      params.push(checked ? 1 : 0);
+    }
+    if (category !== undefined) {
+      updates.push('category = ?');
+      params.push(category);
+    }
+    
+    updates.push('updatedAt = ?');
+    params.push(now);
+    params.push(itemId);
+    
     await db.run(
-      'UPDATE shopping_list_items SET text = ?, checked = ?, updatedAt = ? WHERE id = ?',
-      [text, checked ? 1 : 0, now, itemId]
+      `UPDATE shopping_list_items SET ${updates.join(', ')} WHERE id = ?`,
+      params
     );
     
     res.json({ success: true });
