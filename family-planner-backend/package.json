@@ -8,16 +8,21 @@
     "dev": "nodemon server.js",
     "init-db": "node scripts/initDatabase.js"
   },
-  "keywords": ["family-planner", "caldav", "sqlite"],
+  "keywords": [
+    "family-planner",
+    "caldav",
+    "sqlite"
+  ],
   "author": "Remco",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
     "cors": "^2.8.5",
-    "sqlite3": "^5.1.7",
-    "tsdav": "^2.0.6",
     "dotenv": "^16.3.1",
-    "body-parser": "^1.20.2"
+    "express": "^4.18.2",
+    "rrule": "^2.8.1",
+    "sqlite3": "^5.1.7",
+    "tsdav": "^2.0.6"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

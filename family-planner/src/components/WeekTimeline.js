@@ -39,12 +39,65 @@ const WeekTimeline = ({ onEventClick }) => {
   };
 
   const getEventsForDay = (date) => {
-    // Use local date string to avoid timezone issues
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-    return events.filter(event => event.date === dateStr);
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    return events.filter(event => {
+      const eventStart = new Date(event.startDate);
+      const eventEnd = new Date(event.endDate);
+      // Include event if it overlaps with this day at all
+      return eventStart <= dayEnd && eventEnd >= dayStart;
+    }).map(event => adjustEventDisplayForDay(event, dayStart));
+  };
+
+  // Helper function to adjust event display for a specific day
+  const adjustEventDisplayForDay = (event, targetDay) => {
+    const eventStart = new Date(event.startDate);
+    const eventEnd = new Date(event.endDate);
+    const dayStart = new Date(targetDay);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(targetDay);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    // Format time in 24-hour European format (HH:MM)
+    const formatTime24h = (date) => {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+
+    // Check if this is a multi-day event
+    const eventStartDay = new Date(eventStart);
+    eventStartDay.setHours(0, 0, 0, 0);
+    const eventEndDay = new Date(eventEnd);
+    eventEndDay.setHours(0, 0, 0, 0);
+    const isMultiDay = eventEndDay > eventStartDay;
+
+    if (!isMultiDay || event.allDay) {
+      // Single day or all-day event - keep original display
+      return event;
+    }
+
+    // Multi-day event - adjust display based on which day we're viewing
+    let displayTime = event.time;
+    
+    if (eventStart >= dayStart && eventStart <= dayEnd) {
+      // Event starts today
+      displayTime = `${formatTime24h(eventStart)} →`;
+    } else if (eventEnd >= dayStart && eventEnd <= dayEnd) {
+      // Event ends today
+      displayTime = `→ ${formatTime24h(eventEnd)}`;
+    } else {
+      // Event continues all day (started before today, ends after today)
+      displayTime = '→ All day →';
+    }
+
+    return {
+      ...event,
+      time: displayTime
+    };
   };
 
   const getMealsForDay = (date) => {

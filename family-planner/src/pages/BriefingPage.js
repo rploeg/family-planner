@@ -221,18 +221,82 @@ const BriefingPage = () => {
   const smartAlerts = getSmartAlerts();
   const powerTrend = getPowerTrend();
 
+  // Helper function to adjust event display for a specific day
+  const adjustEventDisplayForDay = (event, targetDay) => {
+    const eventStart = new Date(event.startDate);
+    const eventEnd = new Date(event.endDate);
+    const dayStart = new Date(targetDay);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(targetDay);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    // Format time in 24-hour European format (HH:MM)
+    const formatTime24h = (date) => {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+
+    // Check if this is a multi-day event
+    const eventStartDay = new Date(eventStart);
+    eventStartDay.setHours(0, 0, 0, 0);
+    const eventEndDay = new Date(eventEnd);
+    eventEndDay.setHours(0, 0, 0, 0);
+    const isMultiDay = eventEndDay > eventStartDay;
+
+    if (!isMultiDay || event.allDay) {
+      // Single day or all-day event - keep original display
+      return event;
+    }
+
+    // Multi-day event - adjust display based on which day we're viewing
+    let displayTime = event.time;
+    
+    if (eventStart >= dayStart && eventStart <= dayEnd) {
+      // Event starts today
+      displayTime = `${formatTime24h(eventStart)} →`;
+    } else if (eventEnd >= dayStart && eventEnd <= dayEnd) {
+      // Event ends today
+      displayTime = `→ ${formatTime24h(eventEnd)}`;
+    } else {
+      // Event continues all day (started before today, ends after today)
+      displayTime = '→ All day →';
+    }
+
+    return {
+      ...event,
+      time: displayTime
+    };
+  };
+
   const getTomorrowEvents = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-    return events.filter(event => event.date === tomorrowStr);
+    tomorrow.setHours(0, 0, 0, 0);
+    const tomorrowEnd = new Date(tomorrow);
+    tomorrowEnd.setHours(23, 59, 59, 999);
+    
+    return events.filter(event => {
+      const eventStart = new Date(event.startDate);
+      const eventEnd = new Date(event.endDate);
+      // Include event if it overlaps with tomorrow at all
+      return eventStart <= tomorrowEnd && eventEnd >= tomorrow;
+    }).map(event => adjustEventDisplayForDay(event, tomorrow));
   };
 
   const getDayAfterTomorrowEvents = () => {
     const dayAfter = new Date();
     dayAfter.setDate(dayAfter.getDate() + 2);
-    const dayAfterStr = `${dayAfter.getFullYear()}-${String(dayAfter.getMonth() + 1).padStart(2, '0')}-${String(dayAfter.getDate()).padStart(2, '0')}`;
-    return events.filter(event => event.date === dayAfterStr);
+    dayAfter.setHours(0, 0, 0, 0);
+    const dayAfterEnd = new Date(dayAfter);
+    dayAfterEnd.setHours(23, 59, 59, 999);
+    
+    return events.filter(event => {
+      const eventStart = new Date(event.startDate);
+      const eventEnd = new Date(event.endDate);
+      // Include event if it overlaps with that day at all
+      return eventStart <= dayAfterEnd && eventEnd >= dayAfter;
+    }).map(event => adjustEventDisplayForDay(event, dayAfter));
   };
 
   const getTodayDateString = () => {

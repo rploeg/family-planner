@@ -1,5 +1,6 @@
 const { createDAVClient } = require('tsdav');
 const { EventEmitter } = require('events');
+const { RRule, RRuleSet } = require('rrule');
 
 class CalDAVService extends EventEmitter {
   constructor(config) {
@@ -48,16 +49,14 @@ class CalDAVService extends EventEmitter {
           timeRange: {
             start: startDate.toISOString(),
             end: endDate.toISOString()
-          }
+          },
+          expand: true // Request expanded recurring events
         });
         
         console.log(`  Found ${calendarObjects.length} objects in calendar: ${calendar.displayName}`);
         
         for (const obj of calendarObjects) {
-          // Check for recurring events
-          if (obj.data.includes('RRULE:')) {
-            console.log('  ⚠ Recurring event detected:', this.extractValue(obj.data.split('\n'), 'SUMMARY'));
-          }
+          // iCloud CalDAV already expands recurring events, so just parse each instance
           const event = this.parseEvent(obj.data, calendar.displayName || calendar.url);
           allEvents.push(event);
         }
@@ -110,6 +109,61 @@ class CalDAVService extends EventEmitter {
     event.person = this.extractPerson(calendarName, event.title);
 
     return event;
+  }
+
+  expandRecurringEvent(icalData, calendarName, startDate, endDate) {
+    const lines = icalData.split('\n').map(l => l.trim());
+    const rruleLine = lines.find(l => l.startsWith('RRULE:'));
+    
+    if (!rruleLine) return [this.parseEvent(icalData, calendarName)];
+
+    try {
+      // Parse the RRULE
+      const rruleStr = rruleLine.substring(6); // Remove "RRULE:"
+      const dtstart = this.parseDateTime(this.extractValue(lines, 'DTSTART'));
+      const dtend = this.parseDateTime(this.extractValue(lines, 'DTEND'));
+      
+      console.log(`    DTSTART: ${dtstart}, DTEND: ${dtend}`);
+      console.log(`    RRULE: ${rruleStr}`);
+      
+      // Calculate duration
+      const duration = new Date(dtend) - new Date(dtstart);
+      
+      // Create RRule with DTSTART
+      const dtStartDate = new Date(dtstart);
+      const rule = RRule.fromString(`DTSTART:${dtStartDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}Z\nRRULE:${rruleStr}`);
+      
+      // Get all occurrences within the date range
+      const occurrences = rule.between(startDate, endDate, true);
+      
+      console.log(`    Expanded ${occurrences.length} occurrences of "${this.extractValue(lines, 'SUMMARY')}" (${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]})`);
+      
+      // Create an event for each occurrence
+      return occurrences.map((occurrence, index) => {
+        const occurrenceEnd = new Date(occurrence.getTime() + duration);
+        const isAllDay = lines.find(l => l.startsWith('DTSTART')) && 
+                        (lines.find(l => l.startsWith('DTSTART')).includes('VALUE=DATE') || 
+                         !lines.find(l => l.startsWith('DTSTART')).includes('T'));
+        
+        return {
+          id: `${this.extractValue(lines, 'UID')}-${occurrence.toISOString()}`,
+          title: this.extractValue(lines, 'SUMMARY') || 'Untitled Event',
+          startDate: occurrence.toISOString(),
+          endDate: occurrenceEnd.toISOString(),
+          location: this.extractValue(lines, 'LOCATION') || '',
+          notes: this.extractValue(lines, 'DESCRIPTION') || '',
+          calendarName: calendarName,
+          isAllDay: isAllDay,
+          date: occurrence.toISOString().split('T')[0],
+          time: isAllDay ? '' : occurrence.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }),
+          person: this.extractPerson(calendarName, this.extractValue(lines, 'SUMMARY'))
+        };
+      });
+    } catch (error) {
+      console.error('    ✗ Failed to expand recurring event:', error.message);
+      console.error('    Stack:', error.stack);
+      return [this.parseEvent(icalData, calendarName)];
+    }
   }
 
   extractValue(lines, key) {
