@@ -23,11 +23,11 @@ export const CalendarProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      // Get events for the next 90 days
+      // Get events for the next 180 days (6 months)
       const startDate = new Date();
       startDate.setHours(0, 0, 0, 0);
       const endDate = new Date();
-      endDate.setDate(endDate.getDate() + 90);
+      endDate.setDate(endDate.getDate() + 180);
       
       const formatDate = (date) => {
         const year = date.getFullYear();
