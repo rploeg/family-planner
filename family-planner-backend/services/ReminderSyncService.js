@@ -5,7 +5,7 @@ class ReminderSyncService extends EventEmitter {
     super();
     this.caldavService = caldavService;
     this.db = database;
-    this.listName = 'Boodschappen'; // The CalDAV reminder list name - will create if not found
+    this.listName = 'Herinneringen'; // Using existing iOS Reminders list
     this.dbListName = 'Groceries'; // The actual database list name
     this.isSyncing = false;
   }

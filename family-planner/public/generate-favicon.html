@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate Favicon</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    canvas { border: 2px solid #ccc; margin: 10px; background: white; }
+    .info { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; }
+    button { padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <h1>🎨 Family Planner Favicon Generator</h1>
+  
+  <div class="info">
+    <h3>Generated Icons:</h3>
+    <canvas id="canvas16" width="16" height="16"></canvas>
+    <canvas id="canvas32" width="32" height="32"></canvas>
+    <canvas id="canvas64" width="64" height="64"></canvas>
+    <br><br>
+    <button onclick="downloadAll()">Download All Favicon Sizes</button>
+  </div>
+
+  <script>
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const scale = size / 64; // Base design on 64px
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, size, size);
+      
+      // Green background with rounded corners
+      ctx.fillStyle = '#4CAF50';
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, size * 0.15);
+      ctx.fill();
+      
+      // Draw calendar icon
+      const margin = size * 0.15;
+      const iconSize = size - (margin * 2);
+      const iconX = margin;
+      const iconY = margin;
+      
+      // Calendar body (white)
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(iconX, iconY + iconSize * 0.15, iconSize, iconSize * 0.85, size * 0.08);
+      ctx.fill();
+      
+      // Calendar header (darker green)
+      ctx.fillStyle = '#2E7D32';
+      ctx.beginPath();
+      ctx.roundRect(iconX, iconY, iconSize, iconSize * 0.25, size * 0.08);
+      ctx.fill();
+      
+      // Calendar rings
+      const ringWidth = size * 0.1;
+      const ringY = iconY + iconSize * 0.05;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(iconX + iconSize * 0.25, ringY, ringWidth, iconSize * 0.15);
+      ctx.fillRect(iconX + iconSize * 0.65, ringY, ringWidth, iconSize * 0.15);
+      
+      // Grid lines (subtle)
+      ctx.strokeStyle = '#E0E0E0';
+      ctx.lineWidth = Math.max(1, size * 0.02);
+      
+      // Horizontal lines
+      for (let i = 1; i <= 2; i++) {
+        const y = iconY + iconSize * 0.25 + (iconSize * 0.75 / 3) * i;
+        ctx.beginPath();
+        ctx.moveTo(iconX + iconSize * 0.1, y);
+        ctx.lineTo(iconX + iconSize * 0.9, y);
+        ctx.stroke();
+      }
+      
+      // Vertical lines
+      for (let i = 1; i <= 2; i++) {
+        const x = iconX + (iconSize / 3) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, iconY + iconSize * 0.25 + iconSize * 0.1);
+        ctx.lineTo(x, iconY + iconSize * 0.9);
+        ctx.stroke();
+      }
+      
+      // Add a small checkmark in one cell
+      if (size >= 32) {
+        ctx.strokeStyle = '#4CAF50';
+        ctx.lineWidth = Math.max(2, size * 0.05);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        const checkX = iconX + iconSize * 0.17;
+        const checkY = iconY + iconSize * 0.55;
+        const checkSize = iconSize * 0.15;
+        
+        ctx.beginPath();
+        ctx.moveTo(checkX, checkY);
+        ctx.lineTo(checkX + checkSize * 0.35, checkY + checkSize * 0.5);
+        ctx.lineTo(checkX + checkSize, checkY - checkSize * 0.3);
+        ctx.stroke();
+      }
+    }
+
+    // Draw all sizes
+    [16, 32, 64].forEach(size => {
+      const canvas = document.getElementById('canvas' + size);
+      drawIcon(canvas, size);
+    });
+
+    function downloadCanvas(canvas, filename) {
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    function downloadAll() {
+      // Download individual sizes
+      setTimeout(() => downloadCanvas(document.getElementById('canvas16'), 'favicon-16x16.png'), 100);
+      setTimeout(() => downloadCanvas(document.getElementById('canvas32'), 'favicon-32x32.png'), 200);
+      setTimeout(() => downloadCanvas(document.getElementById('canvas64'), 'favicon-64x64.png'), 300);
+      
+      alert('Downloading favicon files...\n\n1. Save all 3 PNG files\n2. Use an online tool like "favicon.io" to convert them to favicon.ico\n3. Or just use the PNG files directly!');
+    }
+  </script>
+</body>
+</html>

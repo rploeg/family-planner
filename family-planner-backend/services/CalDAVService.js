@@ -460,7 +460,8 @@ class CalDAVService extends EventEmitter {
     const parts = [];
     if (forMeal) parts.push(`🍽️ Voor ${forMeal}`);
     if (addedBy) parts.push(`👤 ${addedBy}`);
-    return parts.join('\n');
+    // iCalendar format: multi-line values must use literal \n and be folded with spaces
+    return parts.join('\\n');
   }
 
   async createReminder(listName, item) {
@@ -469,14 +470,14 @@ class CalDAVService extends EventEmitter {
     }
 
     try {
-      // Find the reminder list
+      // Find the reminder list - flexible matching to handle emoji and variations
       let reminderList = this.reminderLists.find(list => 
-        list.displayName && list.displayName.toLowerCase() === listName.toLowerCase()
+        list.displayName && list.displayName.toLowerCase().includes(listName.toLowerCase())
       );
 
       if (!reminderList) {
         reminderList = this.calendars.find(cal => 
-          cal.displayName && cal.displayName.toLowerCase() === listName.toLowerCase()
+          cal.displayName && cal.displayName.toLowerCase().includes(listName.toLowerCase())
         );
       }
 
@@ -510,13 +511,15 @@ class CalDAVService extends EventEmitter {
       ].join('\r\n');
 
       // Create the task on the server
-      await this.client.createCalendarObject({
+      const result = await this.client.createCalendarObject({
         calendar: reminderList,
         filename: `${uid}.ics`,
         iCalString: vtodoData
       });
 
-      console.log(`✓ Created reminder: ${item.text}`);
+      console.log(`✓ Created reminder: ${item.text} (UID: ${uid})`);
+      console.log(`  List URL: ${reminderList.url}`);
+      console.log(`  Result:`, result);
       return uid;
     } catch (error) {
       console.error('✗ Failed to create reminder:', error.message);
@@ -530,14 +533,14 @@ class CalDAVService extends EventEmitter {
     }
 
     try {
-      // Find the reminder list
+      // Find the reminder list - flexible matching to handle emoji and variations
       let reminderList = this.reminderLists.find(list => 
-        list.displayName && list.displayName.toLowerCase() === listName.toLowerCase()
+        list.displayName && list.displayName.toLowerCase().includes(listName.toLowerCase())
       );
 
       if (!reminderList) {
         reminderList = this.calendars.find(cal => 
-          cal.displayName && cal.displayName.toLowerCase() === listName.toLowerCase()
+          cal.displayName && cal.displayName.toLowerCase().includes(listName.toLowerCase())
         );
       }
 
