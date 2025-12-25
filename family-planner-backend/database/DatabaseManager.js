@@ -83,6 +83,9 @@ class DatabaseManager {
           checked INTEGER DEFAULT 0,
           addedBy TEXT,
           category TEXT DEFAULT 'household',
+          forMeal TEXT,
+          icloudId TEXT,
+          lastSynced TEXT,
           createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
           updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (listId) REFERENCES shopping_lists(id) ON DELETE CASCADE
@@ -95,6 +98,33 @@ class DatabaseManager {
       `, (err) => {
         if (err && !err.message.includes('duplicate column')) {
           console.error('Error adding category column:', err.message);
+        }
+      });
+      
+      // Add forMeal column to existing tables if it doesn't exist
+      this.db.run(`
+        ALTER TABLE shopping_list_items ADD COLUMN forMeal TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding forMeal column:', err.message);
+        }
+      });
+      
+      // Add icloudId column for reminder sync
+      this.db.run(`
+        ALTER TABLE shopping_list_items ADD COLUMN icloudId TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding icloudId column:', err.message);
+        }
+      });
+      
+      // Add lastSynced column for reminder sync
+      this.db.run(`
+        ALTER TABLE shopping_list_items ADD COLUMN lastSynced TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding lastSynced column:', err.message);
         }
       });
 

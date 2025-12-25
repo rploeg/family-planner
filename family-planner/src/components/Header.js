@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import TimerModal from './TimerModal';
+import NotificationsModal from './NotificationsModal';
 import weatherService from '../services/weatherService';
 import { useTimer } from '../context/TimerContext';
 import { useLists } from '../context/ListsContext';
 import './Header.css';
 
-const Header = ({ onNavigate }) => {
+const Header = ({ onNavigate, alerts = [], dismissedAlertIds = [], onRestoreAlert }) => {
   const [time, setTime] = useState(new Date());
   const [weather, setWeather] = useState(null);
   const [showTimerModal, setShowTimerModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const { i18n } = useTranslation();
   const { remainingTime, isRunning, isPaused, pauseTimer, resumeTimer, stopTimer, formatTime: formatTimerTime } = useTimer();
   const { lists } = useLists();
@@ -31,6 +33,13 @@ const Header = ({ onNavigate }) => {
 
   const totalItems = getTotalItems();
   const kidsItems = getKidsItems();
+
+  // Count active alerts (those not dismissed)
+  const activeAlertsCount = alerts.filter(alert => {
+    const alertId = `${alert.type}-${alert.title}`;
+    const eventSpecificId = alert.eventDate ? `${alertId}-${alert.eventDate}` : alertId;
+    return !dismissedAlertIds.includes(eventSpecificId) && !dismissedAlertIds.includes(alertId);
+  }).length;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -126,6 +135,16 @@ const Header = ({ onNavigate }) => {
         </div>
         <div className="header-right">
           <button 
+            className="notification-bell-button"
+            onClick={() => setShowNotificationsModal(true)}
+            title={i18n.language === 'nl' ? 'Meldingen' : 'Notifications'}
+          >
+            🔔
+            {activeAlertsCount > 0 && (
+              <span className="notification-badge">{activeAlertsCount}</span>
+            )}
+          </button>
+          <button 
             className="shopping-basket-button"
             onClick={() => onNavigate && onNavigate('lists')}
             title={i18n.language === 'nl' ? 'Boodschappenlijst' : 'Shopping list'}
@@ -146,6 +165,14 @@ const Header = ({ onNavigate }) => {
       <TimerModal 
         isOpen={showTimerModal} 
         onClose={() => setShowTimerModal(false)} 
+      />
+
+      <NotificationsModal 
+        isOpen={showNotificationsModal}
+        onClose={() => setShowNotificationsModal(false)}
+        alerts={alerts}
+        dismissedAlertIds={dismissedAlertIds}
+        onRestoreAlert={onRestoreAlert}
       />
     </>
   );

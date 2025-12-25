@@ -7,12 +7,12 @@ import { useTranslation } from 'react-i18next';
 import weatherService from '../services/weatherService';
 import api from '../services/api';
 import EventCard from '../components/EventCard';
+import SmartAlert from '../components/SmartAlert';
 import './BriefingPage.css';
 
-const BriefingPage = () => {
+const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
   const { getTodayEvents, events } = useCalendar();
   const { getMealsForDate } = useMeals();
-  const { users } = useLoxone();
   const { lists } = useLists();
   const { t, i18n } = useTranslation();
   const [weather, setWeather] = useState(null);
@@ -24,6 +24,51 @@ const BriefingPage = () => {
   const [lightsData, setLightsData] = useState(null);
   const [prevEnergyData, setPrevEnergyData] = useState(null);
   const todayEvents = getTodayEvents();
+
+  console.log('BriefingPage received props:', {
+    allAlertsCount: allAlerts.length,
+    allAlerts: allAlerts.map(a => ({ type: a.type, title: a.title, eventDate: a.eventDate })),
+    dismissedAlertIdsCount: dismissedAlertIds.length,
+    dismissedAlertIds
+  });
+
+  // Filter alerts to only show non-dismissed ones
+  const smartAlerts = allAlerts.filter(alert => {
+    const alertId = `${alert.type}-${alert.title}`;
+    const eventSpecificId = alert.eventDate ? `${alertId}-${alert.eventDate}` : alertId;
+    const isDismissed = dismissedAlertIds.includes(eventSpecificId) || dismissedAlertIds.includes(alertId);
+    
+    console.log('BriefingPage checking alert:', {
+      type: alert.type,
+      title: alert.title,
+      eventDate: alert.eventDate,
+      alertId,
+      eventSpecificId,
+      dismissedAlertIds,
+      isDismissed
+    });
+    
+    return !isDismissed;
+  });
+
+  console.log('BriefingPage filtered smartAlerts:', smartAlerts.length);
+
+  const handleDismissAlert = (alert) => {
+    const alertId = `${alert.type}-${alert.title}`;
+    const storageId = alert.eventDate ? `${alertId}-${alert.eventDate}` : alertId;
+    
+    try {
+      const stored = localStorage.getItem('dismissedAlerts');
+      const dismissed = stored ? JSON.parse(stored) : {};
+      dismissed[storageId] = new Date().toISOString();
+      localStorage.setItem('dismissedAlerts', JSON.stringify(dismissed));
+      
+      // Notify App.js to refresh dismissed alerts
+      window.dispatchEvent(new Event('dismissedAlertsChanged'));
+    } catch (error) {
+      console.error('Error dismissing alert:', error);
+    }
+  };
 
   // Debug logging
   useEffect(() => {
@@ -44,8 +89,13 @@ const BriefingPage = () => {
     }, 60000);
 
     // Cleanup interval on unmount
-    return () => clearInterval(loxoneInterval);
+    return () => {
+      clearInterval(loxoneInterval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // No longer need to update smart alerts - they come from props now
 
   const loadWeather = async () => {
     try {
@@ -108,13 +158,6 @@ const BriefingPage = () => {
     }
   };
 
-  // Calculate total uncompleted items across all lists
-  const getTotalListItems = () => {
-    return lists.reduce((total, list) => {
-      return total + list.items.filter(item => !item.completed && !item.checked).length;
-    }, 0);
-  };
-
   // Calculate power trend
   const getPowerTrend = () => {
     if (!energyData || !prevEnergyData) return null;
@@ -138,76 +181,6 @@ const BriefingPage = () => {
     return { status: 'good', color: '#8BC34A', warning: false };
   };
 
-  // Generate smart alerts
-  const getSmartAlerts = () => {
-    const alerts = [];
-    const totalItems = getTotalListItems();
-
-    // Shopping list reminder
-    if (totalItems >= 5) {
-      alerts.push({
-        type: 'shopping',
-        icon: '🛒',
-        message: i18n.language === 'nl' 
-          ? `Boodschappenlijst heeft ${totalItems} items`
-          : `Shopping list has ${totalItems} items`,
-        priority: 'low'
-      });
-    }
-
-    // Lights on in empty room
-    if (lightsData && rooms && rooms.length > 0) {
-      const emptyWithLights = rooms.filter(room => !room.occupied && lightsData.some(light => light.isOn));
-      if (emptyWithLights.length > 0) {
-        alerts.push({
-          type: 'lights',
-          icon: '💡',
-          message: i18n.language === 'nl'
-            ? 'Lichten aan in lege kamer'
-            : 'Lights on in empty room',
-          priority: 'medium'
-        });
-      }
-    }
-
-    // High power usage
-    if (energyData && energyData.currentUsage > 0.5) {
-      alerts.push({
-        type: 'power',
-        icon: '⚡',
-        message: i18n.language === 'nl'
-          ? `Hoog verbruik: ${(energyData.currentUsage * 1000).toFixed(0)}W`
-          : `High usage: ${(energyData.currentUsage * 1000).toFixed(0)}W`,
-        priority: 'medium'
-      });
-    }
-
-    // Outdoor event weather warning
-    const outdoorEvents = todayEvents.filter(event => {
-      const location = event.location?.toLowerCase() || '';
-      const title = event.title?.toLowerCase() || '';
-      return location.includes('park') || location.includes('buiten') || 
-             location.includes('outdoor') || title.includes('outdoor') ||
-             title.includes('buiten') || location.includes('tuin');
-    });
-
-    if (outdoorEvents.length > 0 && weather && !weatherService.isOutdoorFriendly(weather).suitable) {
-      alerts.push({
-        type: 'weather',
-        icon: '⚠️',
-        message: i18n.language === 'nl'
-          ? `${outdoorEvents.length} buitenevenement(en) - slecht weer verwacht`
-          : `${outdoorEvents.length} outdoor event(s) - bad weather expected`,
-        priority: 'high'
-      });
-    }
-
-    return alerts.sort((a, b) => {
-      const priority = { high: 3, medium: 2, low: 1 };
-      return priority[b.priority] - priority[a.priority];
-    });
-  };
-
   // Update prevEnergyData for trend calculation
   useEffect(() => {
     if (energyData) {
@@ -218,7 +191,6 @@ const BriefingPage = () => {
     }
   }, [energyData]);
 
-  const smartAlerts = getSmartAlerts();
   const powerTrend = getPowerTrend();
 
   // Helper function to adjust event display for a specific day
@@ -378,6 +350,19 @@ const BriefingPage = () => {
           })}
         </p>
       </section>
+
+      {/* Smart Alerts */}
+      {smartAlerts.length > 0 && (
+        <section className="briefing-section smart-alerts-section">
+          {smartAlerts.map((alert, index) => (
+            <SmartAlert 
+              key={`${alert.type}-${alert.title}-${index}`}
+              suggestion={alert}
+              onDismiss={() => handleDismissAlert(alert)}
+            />
+          ))}
+        </section>
+      )}
 
       {/* Weather Warning for Outdoor Events
       <section className="briefing-section summary-section">

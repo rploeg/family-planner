@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const DatabaseManager = require('./database/DatabaseManager');
 const CalDAVService = require('./services/CalDAVService');
+const ReminderSyncService = require('./services/ReminderSyncService');
 const LoxoneService = require('./services/LoxoneService');
 
 const app = express();
@@ -18,6 +19,9 @@ const calDAVService = new CalDAVService({
   username: process.env.CALDAV_USERNAME,
   password: process.env.CALDAV_PASSWORD
 });
+
+// Initialize Reminder Sync Service
+const reminderSyncService = new ReminderSyncService(calDAVService, db);
 
 // Initialize Loxone Service (optional)
 const loxoneService = new LoxoneService({
@@ -236,13 +240,13 @@ app.delete('/api/lists/:id', async (req, res) => {
 app.post('/api/lists/:listId/items', async (req, res) => {
   try {
     const { listId } = req.params;
-    const { id, text, addedBy, category } = req.body;
+    const { id, text, addedBy, category, forMeal } = req.body;
     const now = new Date().toISOString();
     
     await db.run(
-      `INSERT INTO shopping_list_items (id, listId, text, checked, addedBy, category, createdAt, updatedAt)
-       VALUES (?, ?, ?, 0, ?, ?, ?, ?)`,
-      [id, listId, text, addedBy, category || 'household', now, now]
+      `INSERT INTO shopping_list_items (id, listId, text, checked, addedBy, category, forMeal, createdAt, updatedAt)
+       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+      [id, listId, text, addedBy, category || 'household', forMeal || null, now, now]
     );
     
     res.json({ success: true, id });
@@ -408,6 +412,55 @@ app.put('/api/settings/:key', async (req, res) => {
   }
 });
 
+// ============= ICLOUD REMINDERS SYNC API =============
+app.get('/api/reminders/lists', async (req, res) => {
+  try {
+    if (!calDAVService.isInitialized) {
+      await calDAVService.initialize();
+    }
+    
+    const lists = calDAVService.calendars.map(cal => ({
+      name: cal.displayName || cal.url,
+      url: cal.url,
+      components: cal.components || [],
+      supportsReminders: cal.components && cal.components.includes('VTODO')
+    }));
+    
+    res.json(lists);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/reminders/sync', async (req, res) => {
+  try {
+    console.log('📱 Manual reminder sync requested');
+    const result = await reminderSyncService.performSync();
+    res.json(result);
+  } catch (error) {
+    console.error('Reminder sync error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      error: error.message 
+    });
+  }
+});
+
+app.get('/api/reminders/status', async (req, res) => {
+  try {
+    const isSyncing = reminderSyncService.isSyncing;
+    const reminders = calDAVService.getReminders();
+    
+    res.json({
+      syncing: isSyncing,
+      reminderCount: reminders.length,
+      lastSync: reminderSyncService.lastSyncTime || null
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============= LOXONE API =============
 app.get('/api/loxone/rooms', async (req, res) => {
   try {
@@ -530,6 +583,28 @@ app.listen(PORT, () => {
   console.log(`   Database: ${process.env.DATABASE_PATH || './data/family-planner.db'}`);
   console.log(`   CalDAV: ${process.env.CALDAV_SERVER_URL || 'not configured'}`);
   console.log(`   Loxone: ${process.env.LOXONE_SERVER_URL || 'not configured'}`);
+  
+  // Start automatic reminder sync
+  if (process.env.CALDAV_SERVER_URL) {
+    const reminderSyncInterval = parseInt(process.env.REMINDERS_SYNC_INTERVAL || '3') * 60 * 1000; // Convert minutes to ms
+    
+    // Initial sync after 10 seconds
+    setTimeout(() => {
+      console.log('🔄 Performing initial reminder sync...');
+      reminderSyncService.performSync().catch(err => 
+        console.error('Initial reminder sync failed:', err.message)
+      );
+    }, 10000);
+    
+    // Periodic sync
+    setInterval(() => {
+      reminderSyncService.performSync().catch(err => 
+        console.error('Automatic reminder sync failed:', err.message)
+      );
+    }, reminderSyncInterval);
+    
+    console.log(`   Reminder Sync: Every ${process.env.REMINDERS_SYNC_INTERVAL || '3'} minutes`);
+  }
 });
 
 // Graceful shutdown
@@ -538,3 +613,4 @@ process.on('SIGINT', () => {
   db.close();
   process.exit(0);
 });
+

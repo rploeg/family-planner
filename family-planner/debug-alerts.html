@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Alerts</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        h2 { color: #8BC34A; }
+        pre { background: #2a2a2a; padding: 10px; border-radius: 8px; overflow-x: auto; }
+        button { background: #8BC34A; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin: 10px 5px 10px 0; }
+        button:hover { background: #7CB342; }
+        .warning { color: #FF5252; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Alerts Debugging Tool</h1>
+    
+    <h2>Dismissed Alerts in LocalStorage:</h2>
+    <pre id="dismissedAlerts"></pre>
+    
+    <button onclick="clearDismissed()">Clear All Dismissed Alerts</button>
+    <button onclick="refresh()">Refresh</button>
+    
+    <h2>Actions:</h2>
+    <p class="warning">⚠️ Use these buttons to debug alert issues</p>
+
+    <script>
+        function refresh() {
+            const dismissed = localStorage.getItem('dismissedAlerts');
+            const output = document.getElementById('dismissedAlerts');
+            
+            if (!dismissed) {
+                output.textContent = 'No dismissed alerts found';
+                return;
+            }
+            
+            try {
+                const parsed = JSON.parse(dismissed);
+                const formatted = JSON.stringify(parsed, null, 2);
+                
+                // Add human-readable dates
+                let readable = 'Raw data:\n' + formatted + '\n\nHuman-readable:\n';
+                Object.keys(parsed).forEach(key => {
+                    const date = new Date(parsed[key]);
+                    const daysAgo = Math.floor((new Date() - date) / (1000 * 60 * 60 * 24));
+                    readable += `\n${key}\n  Dismissed: ${date.toLocaleString()}\n  Days ago: ${daysAgo}\n`;
+                });
+                
+                output.textContent = readable;
+            } catch (e) {
+                output.textContent = 'Error parsing: ' + e.message + '\n\nRaw: ' + dismissed;
+            }
+        }
+        
+        function clearDismissed() {
+            if (confirm('Are you sure you want to clear all dismissed alerts?')) {
+                localStorage.removeItem('dismissedAlerts');
+                alert('Cleared! Refresh the page to see changes in your app.');
+                refresh();
+            }
+        }
+        
+        // Initial load
+        refresh();
+    </script>
+</body>
+</html>

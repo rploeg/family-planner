@@ -198,6 +198,11 @@ const ListsPage = () => {
                             {categories.find(c => c.value === (item.category || 'household'))?.icon}
                           </span>
                           <span className="item-text">{item.text}</span>
+                          {item.forMeal && (
+                            <span className="item-meal-tag" title={`Voor: ${item.forMeal}`}>
+                              🍽️ {item.forMeal}
+                            </span>
+                          )}
                         </div>
                         <span className="item-meta">
                           {item.addedBy && `${item.addedBy} • `}

@@ -76,7 +76,7 @@ export const ListsProvider = ({ children }) => {
   };
 
   // Add item to list
-  const addItem = async (listId, text, addedBy = 'User', category = 'household') => {
+  const addItem = async (listId, text, addedBy = 'User', category = 'household', forMeal = null) => {
     try {
       const newItem = {
         id: `${listId}-${Date.now()}`,
@@ -84,7 +84,8 @@ export const ListsProvider = ({ children }) => {
         checked: false,
         completed: false,  // For frontend compatibility
         addedBy,
-        category
+        category,
+        forMeal
       };
       await api.addListItem(listId, newItem);
       
