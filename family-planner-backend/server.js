@@ -192,8 +192,118 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     database: 'connected',
-    caldav: calDAVService.isInitialized ? 'connected' : 'disconnected'
+    caldav: calDAVService.isInitialized ? 'connected' : 'disconnected',
+    loxone: loxoneService.isInitialized ? 'connected' : 'disconnected',
+    googleTasks: googleTasksService.isInitialized ? 'connected' : 'disconnected'
   });
+});
+
+// Get current configuration (all settings)
+app.get('/api/config', (req, res) => {
+  res.json({
+    server: {
+      port: process.env.PORT || '3002',
+      nodeEnv: process.env.NODE_ENV || 'development',
+      databasePath: process.env.DATABASE_PATH || './data/family-planner.db',
+      corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000'
+    },
+    caldav: {
+      enabled: !!process.env.CALDAV_SERVER_URL,
+      serverUrl: process.env.CALDAV_SERVER_URL || '',
+      username: process.env.CALDAV_USERNAME || '',
+      password: process.env.CALDAV_PASSWORD ? '********' : '',
+      hasPassword: !!process.env.CALDAV_PASSWORD,
+      connected: calDAVService.isInitialized,
+      calendarsCount: calDAVService.calendars?.length || 0,
+      syncInterval: parseInt(process.env.CALENDAR_SYNC_INTERVAL) || 5
+    },
+    googleTasks: {
+      enabled: !!process.env.GOOGLE_CLIENT_ID,
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ? '********' : '',
+      hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri: process.env.GOOGLE_REDIRECT_URI || `http://localhost:${PORT}/api/google/callback`,
+      taskListName: process.env.GOOGLE_TASKS_LIST_NAME || 'Shopping List',
+      syncInterval: parseInt(process.env.GOOGLE_SYNC_INTERVAL) || 30,
+      connected: googleTasksService.isInitialized
+    },
+    loxone: {
+      enabled: !!process.env.LOXONE_SERVER_URL,
+      serverUrl: process.env.LOXONE_SERVER_URL || '',
+      username: process.env.LOXONE_USERNAME || '',
+      password: process.env.LOXONE_PASSWORD ? '********' : '',
+      hasPassword: !!process.env.LOXONE_PASSWORD,
+      connected: loxoneService.isInitialized
+    }
+  });
+});
+
+// Save configuration to .env file
+app.post('/api/config', async (req, res) => {
+  try {
+    const fs = require('fs');
+    const config = req.body;
+    
+    // Read current .env file to preserve passwords if not changed
+    const envPath = path.join(__dirname, '.env');
+    let currentEnv = {};
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      content.split('\n').forEach(line => {
+        if (line && !line.startsWith('#')) {
+          const [key, ...valueParts] = line.split('=');
+          if (key) currentEnv[key.trim()] = valueParts.join('=').trim();
+        }
+      });
+    }
+    
+    // Build new .env content
+    const envContent = `# Family Planner Backend Environment Configuration
+
+# Server Configuration
+PORT=${config.server?.port || currentEnv.PORT || '3002'}
+NODE_ENV=${config.server?.nodeEnv || currentEnv.NODE_ENV || 'development'}
+
+# Database
+DATABASE_PATH=${config.server?.databasePath || currentEnv.DATABASE_PATH || './data/family-planner.db'}
+
+# iCloud Calendar (CalDAV) - For calendar sync only
+CALDAV_SERVER_URL=${config.caldav?.serverUrl || currentEnv.CALDAV_SERVER_URL || ''}
+CALDAV_USERNAME=${config.caldav?.username || currentEnv.CALDAV_USERNAME || ''}
+CALDAV_PASSWORD=${config.caldav?.password === '********' ? currentEnv.CALDAV_PASSWORD : (config.caldav?.password || '')}
+
+# CORS - Allow frontend access
+CORS_ORIGIN=${config.server?.corsOrigin || currentEnv.CORS_ORIGIN || 'http://localhost:3000'}
+
+# Calendar Sync Interval (minutes)
+CALENDAR_SYNC_INTERVAL=${config.caldav?.syncInterval || currentEnv.CALENDAR_SYNC_INTERVAL || '5'}
+
+# Google Tasks Integration - For shopping list sync
+# Create credentials at: https://console.cloud.google.com/apis/credentials
+# Enable Google Tasks API at: https://console.cloud.google.com/apis/library/tasks.googleapis.com
+GOOGLE_CLIENT_ID=${config.googleTasks?.clientId || currentEnv.GOOGLE_CLIENT_ID || ''}
+GOOGLE_CLIENT_SECRET=${config.googleTasks?.clientSecret === '********' ? currentEnv.GOOGLE_CLIENT_SECRET : (config.googleTasks?.clientSecret || '')}
+GOOGLE_REDIRECT_URI=${config.googleTasks?.redirectUri || currentEnv.GOOGLE_REDIRECT_URI || 'http://localhost:3002/api/google/callback'}
+GOOGLE_TASKS_LIST_NAME=${config.googleTasks?.taskListName || currentEnv.GOOGLE_TASKS_LIST_NAME || 'Shopping List'}
+GOOGLE_SYNC_INTERVAL=${config.googleTasks?.syncInterval || currentEnv.GOOGLE_SYNC_INTERVAL || '30'}
+
+# Loxone Integration - Optional, comment out if not using
+LOXONE_SERVER_URL=${config.loxone?.serverUrl || currentEnv.LOXONE_SERVER_URL || ''}
+LOXONE_USERNAME=${config.loxone?.username || currentEnv.LOXONE_USERNAME || ''}
+LOXONE_PASSWORD=${config.loxone?.password === '********' ? currentEnv.LOXONE_PASSWORD : (config.loxone?.password || '')}
+`;
+
+    fs.writeFileSync(envPath, envContent);
+    
+    res.json({ 
+      success: true, 
+      message: 'Settings saved. Restart server to apply changes.',
+      requiresRestart: true
+    });
+  } catch (error) {
+    console.error('Error saving config:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ============= FAMILY MEMBERS API =============
@@ -549,9 +659,7 @@ app.get('/api/events', async (req, res) => {
 app.get('/api/settings', async (req, res) => {
   try {
     const settings = await db.all('SELECT key, value FROM settings');
-    const settingsObj = {};
-    settings.forEach(s => settingsObj[s.key] = s.value);
-    res.json(settingsObj);
+    res.json(settings);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

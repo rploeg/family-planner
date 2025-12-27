@@ -5,6 +5,7 @@ import CalendarPage from './pages/CalendarPage';
 import FamilyPage from './pages/FamilyPage';
 import ListsPage from './pages/ListsPage';
 import BriefingPage from './pages/BriefingPage';
+import SettingsPage from './pages/SettingsPage';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import { LoxoneProvider } from './context/LoxoneContext';
@@ -165,6 +166,7 @@ function AppContent() {
         {currentPage === 'calendar' && <CalendarPage />}
         {currentPage === 'family' && <FamilyPage />}
         {currentPage === 'lists' && <ListsPage />}
+        {currentPage === 'settings' && <SettingsPage />}
       </main>
 
       <BottomNav currentPage={currentPage} onNavigate={setCurrentPage} />

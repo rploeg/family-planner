@@ -10,6 +10,7 @@ const resources = {
       "nav.family": "Family",
       "nav.lists": "Lists",
       "nav.briefing": "Briefing",
+      "nav.settings": "Settings",
       
       // Calendar
       "calendar.title": "CALENDAR",
@@ -43,9 +44,26 @@ const resources = {
       
       // Settings
       "settings.title": "Settings",
+      "settings.subtitle": "Configure your integrations",
       "settings.calendar": "Calendar",
       "settings.loxone": "Loxone",
       "settings.language": "Language",
+      "settings.selectLanguage": "Select Language",
+      "settings.status": "Status",
+      "settings.enabled": "Enabled",
+      "settings.serverUrl": "Server URL",
+      "settings.username": "Username",
+      "settings.password": "Password",
+      "settings.taskList": "Task List",
+      "settings.syncInterval": "Sync Interval (seconds)",
+      "settings.syncNow": "Sync Now",
+      "settings.connectGoogle": "Connect Google Tasks",
+      "settings.calendarSync": "Calendar Sync",
+      "settings.caldavHint": "For iCloud, use an app-specific password from appleid.apple.com",
+      "settings.googleAuthRequired": "Google authentication required to sync calendars",
+      "settings.saveAll": "Save All Settings",
+      "settings.saved": "Settings saved successfully!",
+      "settings.saveError": "Some settings could not be saved",
       
       // Lists
       "lists.title": "LISTS",
@@ -113,6 +131,7 @@ const resources = {
       "nav.family": "Familie",
       "nav.lists": "Lijsten",
       "nav.briefing": "Start",
+      "nav.settings": "Instellingen",
       
       // Agenda
       "calendar.title": "AGENDA",
@@ -146,9 +165,26 @@ const resources = {
       
       // Instellingen
       "settings.title": "Instellingen",
+      "settings.subtitle": "Configureer je integraties",
       "settings.calendar": "Agenda",
       "settings.loxone": "Loxone",
       "settings.language": "Taal",
+      "settings.selectLanguage": "Selecteer Taal",
+      "settings.status": "Status",
+      "settings.enabled": "Ingeschakeld",
+      "settings.serverUrl": "Server URL",
+      "settings.username": "Gebruikersnaam",
+      "settings.password": "Wachtwoord",
+      "settings.taskList": "Takenlijst",
+      "settings.syncInterval": "Sync Interval (seconden)",
+      "settings.syncNow": "Nu Synchroniseren",
+      "settings.connectGoogle": "Verbind Google Tasks",
+      "settings.calendarSync": "Agenda Synchronisatie",
+      "settings.caldavHint": "Voor iCloud, gebruik een app-specifiek wachtwoord van appleid.apple.com",
+      "settings.googleAuthRequired": "Google authenticatie vereist voor agenda synchronisatie",
+      "settings.saveAll": "Alle Instellingen Opslaan",
+      "settings.saved": "Instellingen succesvol opgeslagen!",
+      "settings.saveError": "Sommige instellingen konden niet worden opgeslagen",
       
       // Lijsten
       "lists.title": "LIJSTEN",
