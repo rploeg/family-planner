@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const DatabaseManager = require('./database/DatabaseManager');
 const CalDAVService = require('./services/CalDAVService');
 const GoogleTasksService = require('./services/GoogleTasksService');
+const GoogleCalendarService = require('./services/GoogleCalendarService');
 const LoxoneService = require('./services/LoxoneService');
 
 const app = express();
@@ -31,6 +32,18 @@ const googleTasksService = new GoogleTasksService({
   redirectUri: process.env.GOOGLE_REDIRECT_URI || `http://localhost:${PORT}/api/google/callback`,
   taskListName: process.env.GOOGLE_TASKS_LIST_NAME || 'Shopping List'
 });
+
+// Initialize Google Calendar Service
+const googleCalendarService = new GoogleCalendarService({
+  clientId: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  redirectUri: process.env.GOOGLE_REDIRECT_URI || `http://localhost:${PORT}/api/google/callback`,
+  calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary'
+});
+
+// Calendar source setting: 'apple', 'google', 'both'
+const CALENDAR_SOURCE = process.env.CALENDAR_SOURCE || 'apple';
+const GOOGLE_CALENDAR_ENABLED = process.env.GOOGLE_CALENDAR_ENABLED === 'true';
 
 // Initialize Loxone Service (optional)
 const loxoneService = new LoxoneService({
@@ -193,8 +206,10 @@ app.get('/health', (req, res) => {
     status: 'ok', 
     database: 'connected',
     caldav: calDAVService.isInitialized ? 'connected' : 'disconnected',
+    googleCalendar: googleCalendarService.isInitialized ? 'connected' : 'disconnected',
     loxone: loxoneService.isInitialized ? 'connected' : 'disconnected',
-    googleTasks: googleTasksService.isInitialized ? 'connected' : 'disconnected'
+    googleTasks: googleTasksService.isInitialized ? 'connected' : 'disconnected',
+    calendarSource: CALENDAR_SOURCE
   });
 });
 
@@ -207,6 +222,7 @@ app.get('/api/config', (req, res) => {
       databasePath: process.env.DATABASE_PATH || './data/family-planner.db',
       corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000'
     },
+    calendarSource: process.env.CALENDAR_SOURCE || 'apple',
     caldav: {
       enabled: !!process.env.CALDAV_SERVER_URL,
       serverUrl: process.env.CALDAV_SERVER_URL || '',
@@ -226,6 +242,11 @@ app.get('/api/config', (req, res) => {
       taskListName: process.env.GOOGLE_TASKS_LIST_NAME || 'Shopping List',
       syncInterval: parseInt(process.env.GOOGLE_SYNC_INTERVAL) || 30,
       connected: googleTasksService.isInitialized
+    },
+    googleCalendar: {
+      enabled: process.env.GOOGLE_CALENDAR_ENABLED === 'true',
+      calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
+      connected: googleCalendarService.isInitialized
     },
     loxone: {
       enabled: !!process.env.LOXONE_SERVER_URL,
@@ -278,6 +299,9 @@ CORS_ORIGIN=${config.server?.corsOrigin || currentEnv.CORS_ORIGIN || 'http://loc
 # Calendar Sync Interval (minutes)
 CALENDAR_SYNC_INTERVAL=${config.caldav?.syncInterval || currentEnv.CALENDAR_SYNC_INTERVAL || '5'}
 
+# Calendar Source - Options: apple, google, both
+CALENDAR_SOURCE=${config.calendarSource || currentEnv.CALENDAR_SOURCE || 'apple'}
+
 # Google Tasks Integration - For shopping list sync
 # Create credentials at: https://console.cloud.google.com/apis/credentials
 # Enable Google Tasks API at: https://console.cloud.google.com/apis/library/tasks.googleapis.com
@@ -286,6 +310,12 @@ GOOGLE_CLIENT_SECRET=${config.googleTasks?.clientSecret === '********' ? current
 GOOGLE_REDIRECT_URI=${config.googleTasks?.redirectUri || currentEnv.GOOGLE_REDIRECT_URI || 'http://localhost:3002/api/google/callback'}
 GOOGLE_TASKS_LIST_NAME=${config.googleTasks?.taskListName || currentEnv.GOOGLE_TASKS_LIST_NAME || 'Shopping List'}
 GOOGLE_SYNC_INTERVAL=${config.googleTasks?.syncInterval || currentEnv.GOOGLE_SYNC_INTERVAL || '30'}
+
+# Google Calendar Integration - For calendar events sync
+# Uses the same Google OAuth credentials as Google Tasks
+# Enable Google Calendar API at: https://console.cloud.google.com/apis/library/calendar-json.googleapis.com
+GOOGLE_CALENDAR_ENABLED=${config.googleCalendar?.enabled === true || config.googleCalendar?.enabled === 'true' ? 'true' : (currentEnv.GOOGLE_CALENDAR_ENABLED || 'false')}
+GOOGLE_CALENDAR_ID=${config.googleCalendar?.calendarId || currentEnv.GOOGLE_CALENDAR_ID || 'primary'}
 
 # Loxone Integration - Optional, comment out if not using
 LOXONE_SERVER_URL=${config.loxone?.serverUrl || currentEnv.LOXONE_SERVER_URL || ''}
@@ -576,7 +606,7 @@ app.delete('/api/lists/:listId/items/:itemId', async (req, res) => {
   }
 });
 
-// ============= CALENDAR EVENTS API (CalDAV) =============
+// ============= CALENDAR EVENTS API (CalDAV + Google Calendar) =============
 app.get('/api/events', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
@@ -585,11 +615,59 @@ app.get('/api/events', async (req, res) => {
       return res.status(400).json({ error: 'startDate and endDate are required' });
     }
     
-    // Sync from CalDAV
-    const events = await calDAVService.syncEvents(
-      new Date(startDate),
-      new Date(endDate)
-    );
+    const calendarSource = process.env.CALENDAR_SOURCE || 'apple';
+    let allEvents = [];
+    let sources = [];
+    
+    // Get events from Apple Calendar (CalDAV)
+    if (calendarSource === 'apple' || calendarSource === 'both') {
+      if (calDAVService.isInitialized) {
+        try {
+          const appleEvents = await calDAVService.syncEvents(
+            new Date(startDate),
+            new Date(endDate)
+          );
+          appleEvents.forEach(e => e.source = 'apple');
+          allEvents.push(...appleEvents);
+          sources.push('apple');
+        } catch (error) {
+          console.error('CalDAV error:', error.message);
+        }
+      }
+    }
+    
+    // Get events from Google Calendar
+    if ((calendarSource === 'google' || calendarSource === 'both') && GOOGLE_CALENDAR_ENABLED) {
+      if (googleCalendarService.isInitialized) {
+        try {
+          const googleEvents = await googleCalendarService.getEvents(
+            new Date(startDate),
+            new Date(endDate)
+          );
+          allEvents.push(...googleEvents);
+          sources.push('google');
+        } catch (error) {
+          console.error('Google Calendar error:', error.message);
+        }
+      }
+    }
+    
+    // Normalize events format
+    const events = allEvents.map(event => ({
+      id: event.id,
+      title: event.title,
+      startDate: event.startDate || event.start,
+      endDate: event.endDate || event.end,
+      date: event.date || (event.start ? event.start.split('T')[0] : null),
+      time: event.time || (event.start && event.start.includes('T') ? event.start.split('T')[1].substring(0, 5) : ''),
+      isAllDay: event.isAllDay || event.allDay || false,
+      person: event.person || event.calendar || '',
+      location: event.location || '',
+      notes: event.notes || event.description || '',
+      calendarName: event.calendarName || event.calendar || 'Calendar',
+      source: event.source || 'unknown',
+      color: event.color || (event.source === 'google' ? '#4285f4' : '#007AFF')
+    }));
     
     // Store in cache
     for (const event of events) {
@@ -621,7 +699,7 @@ app.get('/api/events', async (req, res) => {
     // Sort events by date and time before returning
     events.sort((a, b) => {
       // First sort by date
-      const dateCompare = a.date.localeCompare(b.date);
+      const dateCompare = (a.date || '').localeCompare(b.date || '');
       if (dateCompare !== 0) return dateCompare;
       
       // If same date, all-day events come first
@@ -630,14 +708,14 @@ app.get('/api/events', async (req, res) => {
       if (a.isAllDay && b.isAllDay) return 0;
       
       // If both have times, sort by time
-      return a.time.localeCompare(b.time);
+      return (a.time || '').localeCompare(b.time || '');
     });
     
-    res.json(events);
+    res.json({ events, sources, calendarSource });
   } catch (error) {
-    console.error('CalDAV error:', error);
+    console.error('Calendar error:', error);
     
-    // Fall back to cached events if CalDAV fails
+    // Fall back to cached events if both calendars fail
     try {
       const cachedEvents = await db.all(
         'SELECT * FROM calendar_events WHERE date >= ? AND date <= ? ORDER BY date, time',
@@ -650,7 +728,7 @@ app.get('/api/events', async (req, res) => {
         error: error.message
       });
     } catch (dbError) {
-      res.status(500).json({ error: 'CalDAV and cache both failed' });
+      res.status(500).json({ error: 'Calendar and cache both failed' });
     }
   }
 });
@@ -707,7 +785,7 @@ app.get('/api/google/auth-url', async (req, res) => {
   }
 });
 
-// OAuth2 callback
+// OAuth2 callback - handles both Google Tasks and Google Calendar
 app.get('/api/google/callback', async (req, res) => {
   try {
     const { code } = req.query;
@@ -715,16 +793,23 @@ app.get('/api/google/callback', async (req, res) => {
       return res.status(400).send('Authorization code missing');
     }
     
+    // Handle auth for Google Tasks (this saves the tokens)
     await googleTasksService.handleAuthCallback(code);
+    
+    // Initialize Google Calendar using the saved tokens (don't use the code again)
+    if (GOOGLE_CALENDAR_ENABLED) {
+      await googleCalendarService.initialize();
+    }
     
     // Redirect to app with success message
     res.send(`
       <html>
-        <head><title>Google Tasks Connected</title></head>
+        <head><title>Google Connected</title></head>
         <body style="font-family: sans-serif; text-align: center; padding-top: 50px; background: #1a1a1a; color: #fff;">
-          <h1>✓ Google Tasks Connected!</h1>
+          <h1>✓ Google Connected!</h1>
           <p>You can now close this window and return to the app.</p>
           <p>Shopping list will sync with Google Tasks.</p>
+          ${GOOGLE_CALENDAR_ENABLED ? '<p>Calendar will sync with Google Calendar.</p>' : ''}
           <script>setTimeout(() => window.close(), 3000);</script>
         </body>
       </html>
@@ -875,6 +960,72 @@ app.get('/api/google/status', async (req, res) => {
   }
 });
 
+// ============= GOOGLE CALENDAR API =============
+// Get Google Calendar status
+app.get('/api/google/calendar/status', async (req, res) => {
+  try {
+    res.json({
+      enabled: GOOGLE_CALENDAR_ENABLED,
+      initialized: googleCalendarService.isInitialized,
+      calendarId: googleCalendarService.calendarId,
+      calendarSource: CALENDAR_SOURCE,
+      authUrl: googleCalendarService.isInitialized ? null : googleCalendarService.getAuthUrl()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get Google Calendar auth URL (includes calendar scope)
+app.get('/api/google/calendar/auth-url', async (req, res) => {
+  try {
+    res.json({
+      url: googleCalendarService.getAuthUrl()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get list of Google Calendars
+app.get('/api/google/calendar/list', async (req, res) => {
+  try {
+    if (!googleCalendarService.isInitialized) {
+      return res.status(401).json({ 
+        error: 'Google Calendar not authorized',
+        authUrl: googleCalendarService.getAuthUrl()
+      });
+    }
+    
+    const calendars = await googleCalendarService.getCalendarList();
+    res.json(calendars);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get events from Google Calendar
+app.get('/api/google/calendar/events', async (req, res) => {
+  try {
+    if (!googleCalendarService.isInitialized) {
+      return res.status(401).json({ 
+        error: 'Google Calendar not authorized',
+        authUrl: googleCalendarService.getAuthUrl()
+      });
+    }
+    
+    const { startDate, endDate, calendarId } = req.query;
+    const events = await googleCalendarService.getEvents(
+      startDate ? new Date(startDate) : null,
+      endDate ? new Date(endDate) : null,
+      calendarId
+    );
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============= LOXONE API =============
 app.get('/api/loxone/rooms', async (req, res) => {
   try {
@@ -1007,6 +1158,16 @@ app.get('/api/loxone/lights', async (req, res) => {
   } else {
     console.warn('⚠ Google Tasks credentials not configured - shopping list sync disabled');
   }
+  
+  // Initialize Google Calendar (optional)
+  if (GOOGLE_CALENDAR_ENABLED && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    try {
+      await googleCalendarService.initialize();
+    } catch (error) {
+      console.warn('⚠ Google Calendar initialization:', error.message);
+      console.log(`  → Authorize at: ${googleCalendarService.getAuthUrl()}`);
+    }
+  }
 })();
 
 // Start Server
@@ -1014,6 +1175,8 @@ app.listen(PORT, () => {
   console.log(`🚀 Family Planner Backend running on http://localhost:${PORT}`);
   console.log(`   Database: ${process.env.DATABASE_PATH || './data/family-planner.db'}`);
   console.log(`   CalDAV: ${process.env.CALDAV_SERVER_URL || 'not configured'}`);
+  console.log(`   Google Calendar: ${googleCalendarService.isInitialized ? 'connected' : (GOOGLE_CALENDAR_ENABLED ? 'not authorized' : 'disabled')}`);
+  console.log(`   Calendar Source: ${CALENDAR_SOURCE}`);
   console.log(`   Loxone: ${process.env.LOXONE_SERVER_URL || 'not configured'}`);
   console.log(`   Google Tasks: ${googleTasksService.isInitialized ? 'connected' : 'not authorized'}`);
 });

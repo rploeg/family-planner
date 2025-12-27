@@ -1,8 +1,8 @@
 {
-  "access_token": "ya29.a0Aa7pCA-rC1CtmtJgEPyjW7aanDenKA_cgtVdK5vYR1OqdCUjm5d_tHZbDBnsErntiW8Th-179hzPNyeTK7NGbLY6HF0F5KmnrHt97HJVdEkSsU0oVy0BDde-HzHzUcJurk6LGvtjZ3-Xdrte8yzkcECTCytQ7tH_QVmi-rXJp4YaaaV2-DwYLT3SctPG7wmNKox7Lg90aCgYKASYSARYSFQHGX2MirPdcHzaqfy6ZFAfd-5G1_w0207",
-  "scope": "https://www.googleapis.com/auth/tasks",
+  "access_token": "ya29.a0Aa7pCA8iaE-f4SBA86gI5cpBvz5L--aCapCwyT5_ssv2COFMIPw9aKRp2EFtvEN2O5JBXEK4dvx3Xz1q8ZLg5UFYFkZwgKO7dezrqaNeq9Ij8x7f6x0apIF23EQ5nfNK09sVcif_QQdT8mw9VAFfUbYedLrEQS8jLogQUGOU8pOBhXtmCL5kmlAx6qLStoPOIPrfTYAaCgYKAV8SARYSFQHGX2MiEta2lxXqacJhZL2i0YBTHw0206",
+  "refresh_token": "1//09I-hNSY6PLXWCgYIARAAGAkSNwF-L9Ir8tvulIlek1A8ZtOLdehM95vAi7n1kXqw_PIkuT9TQglJAMslg_Fe1vxNrs9FYrL9s88",
+  "scope": "https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly",
   "token_type": "Bearer",
-  "refresh_token_expires_in": 575232,
-  "expiry_date": 1766875711727,
-  "refresh_token": "1//09TLXhZPvA0Y-CgYIARAAGAkSNwF-L9IrKlUd-BpOwq0X4DJ1JSN6MW2wvNqemHyJHZV-xXrqOenQAtXSTLkc7UeJ9E54kqBDIbQ"
+  "refresh_token_expires_in": 604799,
+  "expiry_date": 1766878171608
 }

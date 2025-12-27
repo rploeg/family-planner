@@ -41,17 +41,31 @@ export const CalendarProvider = ({ children }) => {
         formatDate(endDate)
       );
       
-      // Check if response is cached data or live CalDAV data
-      if (response.cached) {
+      // Handle different response formats
+      let eventsArray = [];
+      if (response.events && Array.isArray(response.events)) {
+        // New format: { events: [...], sources: [...], calendarSource: "both" }
+        eventsArray = response.events;
+        setIsCached(false);
+      } else if (response.cached) {
+        // Cached data format
         setIsCached(true);
         setEvents(response.events || []);
         if (response.error) {
           setError(`Using cached data: ${response.error}`);
         }
-      } else {
+        return; // Early return for cached data
+      } else if (Array.isArray(response)) {
+        // Old format: direct array
+        eventsArray = response;
         setIsCached(false);
-        // Transform CalDAV events to our format
-        const transformedEvents = (Array.isArray(response) ? response : []).map(event => {
+      } else {
+        eventsArray = [];
+        setIsCached(false);
+      }
+      
+      // Transform events to our format
+      const transformedEvents = eventsArray.map(event => {
           const start = new Date(event.startDate);
           const end = new Date(event.endDate);
           
@@ -87,7 +101,6 @@ export const CalendarProvider = ({ children }) => {
         });
         
         setEvents(transformedEvents);
-      }
     } catch (err) {
       console.error('Failed to load events:', err);
       setError(err.message);

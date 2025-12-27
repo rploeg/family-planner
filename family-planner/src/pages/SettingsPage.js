@@ -16,8 +16,10 @@ const SettingsPage = () => {
   // Form state
   const [formData, setFormData] = useState({
     server: { port: '', nodeEnv: '', databasePath: '', corsOrigin: '' },
+    calendarSource: 'apple',
     caldav: { serverUrl: '', username: '', password: '', syncInterval: '' },
     googleTasks: { clientId: '', clientSecret: '', redirectUri: '', taskListName: '', syncInterval: '' },
+    googleCalendar: { enabled: false, calendarId: 'primary' },
     loxone: { serverUrl: '', username: '', password: '' }
   });
 
@@ -38,6 +40,7 @@ const SettingsPage = () => {
             databasePath: data.server?.databasePath || './data/family-planner.db',
             corsOrigin: data.server?.corsOrigin || 'http://localhost:3000'
           },
+          calendarSource: data.calendarSource || 'apple',
           caldav: {
             serverUrl: data.caldav?.serverUrl || '',
             username: data.caldav?.username || '',
@@ -50,6 +53,10 @@ const SettingsPage = () => {
             redirectUri: data.googleTasks?.redirectUri || '',
             taskListName: data.googleTasks?.taskListName || 'Shopping List',
             syncInterval: data.googleTasks?.syncInterval || '30'
+          },
+          googleCalendar: {
+            enabled: data.googleCalendar?.enabled || false,
+            calendarId: data.googleCalendar?.calendarId || 'primary'
           },
           loxone: {
             serverUrl: data.loxone?.serverUrl || '',
@@ -110,6 +117,20 @@ const SettingsPage = () => {
   const handleGoogleAuth = async () => {
     try {
       const response = await fetch(`${API_BASE}/api/google/auth-url`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.url) {
+          window.open(data.url, '_blank', 'width=600,height=700');
+        }
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const handleGoogleCalendarAuth = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/google/calendar/auth-url`);
       if (response.ok) {
         const data = await response.json();
         if (data.url) {
@@ -199,6 +220,91 @@ const SettingsPage = () => {
                 <span>English</span>
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Calendar Source Card */}
+        <div className="settings-card">
+          <div className="card-header">
+            <span className="card-icon">📆</span>
+            <h2>Agenda Bron</h2>
+          </div>
+          <div className="card-content">
+            <p className="card-description">Kies welke agenda's je wilt gebruiken voor het ophalen van evenementen.</p>
+            <div className="calendar-source-selector">
+              <button 
+                className={`source-button ${formData.calendarSource === 'apple' ? 'active' : ''}`}
+                onClick={() => editMode && setFormData(prev => ({ ...prev, calendarSource: 'apple' }))}
+                disabled={!editMode}
+              >
+                <span className="icon">🍎</span>
+                <span className="label">Apple Agenda</span>
+                <span className="sublabel">iCloud / CalDAV</span>
+              </button>
+              <button 
+                className={`source-button ${formData.calendarSource === 'google' ? 'active' : ''}`}
+                onClick={() => editMode && setFormData(prev => ({ ...prev, calendarSource: 'google' }))}
+                disabled={!editMode}
+              >
+                <span className="icon">📅</span>
+                <span className="label">Google Agenda</span>
+                <span className="sublabel">Gmail account</span>
+              </button>
+              <button 
+                className={`source-button ${formData.calendarSource === 'both' ? 'active' : ''}`}
+                onClick={() => editMode && setFormData(prev => ({ ...prev, calendarSource: 'both' }))}
+                disabled={!editMode}
+              >
+                <span className="icon">🔗</span>
+                <span className="label">Beide</span>
+                <span className="sublabel">Gecombineerd</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Google Calendar Card */}
+        <div className="settings-card">
+          <div className="card-header">
+            <span className="card-icon">📅</span>
+            <h2>Google Agenda</h2>
+            <div className={`status-pill ${config?.googleCalendar?.connected ? 'connected' : 'disconnected'}`}>
+              {config?.googleCalendar?.connected ? '✓ Verbonden' : '✗ Niet verbonden'}
+            </div>
+          </div>
+          <div className="card-content">
+            <div className="form-group checkbox-group">
+              <label className="checkbox-label">
+                <input 
+                  type="checkbox"
+                  checked={formData.googleCalendar.enabled}
+                  onChange={(e) => handleInputChange('googleCalendar', 'enabled', e.target.checked)}
+                  disabled={!editMode}
+                />
+                <span>Google Agenda inschakelen</span>
+              </label>
+            </div>
+            <div className="form-group">
+              <label>Kalender ID</label>
+              <input 
+                type="text" 
+                value={formData.googleCalendar.calendarId}
+                onChange={(e) => handleInputChange('googleCalendar', 'calendarId', e.target.value)}
+                disabled={!editMode}
+                placeholder="primary"
+              />
+              <span className="help-text">Gebruik 'primary' voor je standaard agenda</span>
+            </div>
+            {!config?.googleCalendar?.connected && formData.googleCalendar.enabled && (
+              <button className="action-button connect" onClick={handleGoogleCalendarAuth}>
+                🔗 Verbinden met Google Agenda
+              </button>
+            )}
+            {config?.googleCalendar?.connected && (
+              <div className="info-row success">
+                <span className="label">✓ Verbonden met Google Agenda</span>
+              </div>
+            )}
           </div>
         </div>
 

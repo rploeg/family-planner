@@ -46,10 +46,13 @@ class GoogleTasksService extends EventEmitter {
   }
 
   /**
-   * Get OAuth2 authorization URL
+   * Get OAuth2 authorization URL (includes both Tasks and Calendar scopes)
    */
   getAuthUrl() {
-    const scopes = ['https://www.googleapis.com/auth/tasks'];
+    const scopes = [
+      'https://www.googleapis.com/auth/tasks',
+      'https://www.googleapis.com/auth/calendar.readonly'
+    ];
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
