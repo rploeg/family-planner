@@ -42,8 +42,10 @@ const ListsPage = () => {
 
   const currentList = lists.find(l => l.id === selectedList) || lists[0];
   
-  // Filter items by category
+  // Filter items by category and exclude completed items
   const filteredItems = currentList?.items.filter(item => {
+    // Hide completed items
+    if (item.completed) return false;
     if (filterCategory === 'all') return true;
     return item.category === filterCategory || (!item.category && filterCategory === 'household');
   }) || [];
@@ -154,6 +156,21 @@ const ListsPage = () => {
                 <button 
                   className="add-item-btn"
                   onClick={() => handleAddItem(currentList.id)}
+                  style={{
+                    background: 'linear-gradient(135deg, #8BC34A 0%, #689F38 100%)',
+                    border: 'none',
+                    color: '#000',
+                    padding: '0 24px',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    height: '50px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
                 >
                   {t('common.add')}
                 </button>
@@ -188,7 +205,7 @@ const ListsPage = () => {
                     <div key={item.id} className={`list-item ${item.completed ? 'completed' : ''}`}>
                       <input
                         type="checkbox"
-                        checked={item.completed}
+                        checked={!!item.completed}
                         onChange={() => toggleItem(currentList.id, item.id)}
                         className="item-checkbox"
                       />

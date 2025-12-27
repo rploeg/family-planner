@@ -133,39 +133,53 @@
 
 .add-item-section {
   display: flex;
+  flex-direction: row;
   gap: 12px;
   margin-bottom: 24px;
+  align-items: center;
+  flex-wrap: nowrap;
+  width: 100%;
 }
 
-.add-item-input {
+.add-item-section .add-item-input {
   flex: 1;
+  min-width: 0;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 14px 16px;
   color: #fff;
   font-size: 16px;
+  height: 50px;
+  box-sizing: border-box;
 }
 
-.add-item-input:focus {
+.add-item-section .add-item-input:focus {
   outline: none;
   border-color: #8BC34A;
   background: rgba(255, 255, 255, 0.08);
 }
 
-.add-item-btn {
+.add-item-section .add-item-btn {
   background: linear-gradient(135deg, #8BC34A 0%, #689F38 100%);
   border: none;
   color: #000;
-  padding: 14px 24px;
+  padding: 0 24px;
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: 50px;
+  width: auto;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.add-item-btn:hover {
-  transform: translateY(-2px);
+.add-item-section .add-item-btn:hover {
   box-shadow: 0 4px 12px rgba(139, 195, 74, 0.4);
 }
 
@@ -278,6 +292,9 @@
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 140px;
+  flex-shrink: 0;
+  height: 50px;
+  box-sizing: border-box;
 }
 
 .category-select:hover {

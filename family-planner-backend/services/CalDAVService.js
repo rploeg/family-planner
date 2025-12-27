@@ -86,11 +86,16 @@ class CalDAVService extends EventEmitter {
     try {
       const allEvents = [];
 
+      // Query with a wider range to catch multi-day events that started before the requested range
+      // but are still ongoing during the requested period
+      const fetchStartDate = new Date(startDate);
+      fetchStartDate.setDate(fetchStartDate.getDate() - 30); // Look back 30 days for ongoing events
+
       for (const calendar of this.calendars) {
         const calendarObjects = await this.client.fetchCalendarObjects({
           calendar: calendar,
           timeRange: {
-            start: startDate.toISOString(),
+            start: fetchStartDate.toISOString(),
             end: endDate.toISOString()
           }
         });
@@ -102,8 +107,8 @@ class CalDAVService extends EventEmitter {
         for (const obj of calendarObjects) {
           // Check if this is a recurring event
           if (obj.data.includes('RRULE:')) {
-            // Expand recurring event
-            const expandedEvents = this.expandRecurringEvent(obj.data, calendar.displayName || calendar.url, startDate, endDate);
+            // Expand recurring event using the wider fetch range to catch multi-day events
+            const expandedEvents = this.expandRecurringEvent(obj.data, calendar.displayName || calendar.url, fetchStartDate, endDate);
             for (const event of expandedEvents) {
               if (!seenEventIds.has(event.id)) {
                 seenEventIds.add(event.id);
@@ -121,11 +126,23 @@ class CalDAVService extends EventEmitter {
         }
       }
 
-      this.events = allEvents;
-      this.emit('eventsUpdated', allEvents);
+      // Filter to only include events that overlap with the requested date range
+      // This ensures multi-day events that started before the range but are still ongoing are included
+      const filteredEvents = allEvents.filter(event => {
+        const eventStart = new Date(event.startDate);
+        const eventEnd = new Date(event.endDate);
+        const rangeStart = new Date(startDate);
+        const rangeEnd = new Date(endDate);
+        
+        // Include event if it overlaps with the date range at all
+        return eventStart <= rangeEnd && eventEnd >= rangeStart;
+      });
       
-      console.log(`✓ CalDAV sync complete - ${allEvents.length} events`);
-      return allEvents;
+      this.events = filteredEvents;
+      this.emit('eventsUpdated', filteredEvents);
+      
+      console.log(`✓ CalDAV sync complete - ${filteredEvents.length} events (${allEvents.length} total fetched)`);
+      return filteredEvents;
     } catch (error) {
       console.error('✗ CalDAV sync failed:', error.message);
       throw error;

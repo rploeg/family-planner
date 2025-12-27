@@ -128,6 +128,15 @@ class DatabaseManager {
         }
       });
 
+      // Add googleTaskId column for Google Tasks sync
+      this.db.run(`
+        ALTER TABLE shopping_list_items ADD COLUMN googleTaskId TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding googleTaskId column:', err.message);
+        }
+      });
+
       // Settings table
       this.db.run(`
         CREATE TABLE IF NOT EXISTS settings (

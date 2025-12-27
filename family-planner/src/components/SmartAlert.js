@@ -125,7 +125,7 @@ const SmartAlert = ({ suggestion, onDismiss }) => {
                       </span>
                       {typeof item === 'object' && (
                         <button 
-                          className="add-item-btn"
+                          className="smart-alert-add-btn"
                           onClick={() => handleAddSuggestion(item)}
                         >
                           +
