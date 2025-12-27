@@ -636,11 +636,11 @@ app.get('/api/events', async (req, res) => {
       }
     }
     
-    // Get events from Google Calendar
+    // Get events from Google Calendar (all calendars including holidays)
     if ((calendarSource === 'google' || calendarSource === 'both') && GOOGLE_CALENDAR_ENABLED) {
       if (googleCalendarService.isInitialized) {
         try {
-          const googleEvents = await googleCalendarService.getEvents(
+          const googleEvents = await googleCalendarService.getAllCalendarEvents(
             new Date(startDate),
             new Date(endDate)
           );
