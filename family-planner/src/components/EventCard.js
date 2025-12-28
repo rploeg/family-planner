@@ -56,12 +56,11 @@ const EventCard = ({ event, onClick }) => {
         {event.attendees && event.attendees.length > 0 && (
           <div className="event-attendees">👥 {getAttendeeNames(event.attendees)}</div>
         )}
-        <div className="event-meta">
-          <span className="event-calendar">{event.calendar}</span>
-          {hasAutomation && (
+        {hasAutomation && (
+          <div className="event-meta">
             <span className="automation-badge">🏠 Automation</span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

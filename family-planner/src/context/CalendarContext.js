@@ -15,7 +15,6 @@ export const CalendarProvider = ({ children }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isCached, setIsCached] = useState(false);
 
   // Load events from backend API (with CalDAV or cache)
   const loadEvents = async () => {
@@ -50,10 +49,8 @@ export const CalendarProvider = ({ children }) => {
       if (response.events && Array.isArray(response.events)) {
         // New format: { events: [...], sources: [...], calendarSource: "both" }
         eventsArray = response.events;
-        setIsCached(false);
       } else if (response.cached) {
         // Cached data format
-        setIsCached(true);
         setEvents(response.events || []);
         if (response.error) {
           setError(`Using cached data: ${response.error}`);
@@ -62,16 +59,15 @@ export const CalendarProvider = ({ children }) => {
       } else if (Array.isArray(response)) {
         // Old format: direct array
         eventsArray = response;
-        setIsCached(false);
       } else {
         eventsArray = [];
-        setIsCached(false);
       }
       
       // Transform events to our format
       const transformedEvents = eventsArray.map(event => {
           const start = new Date(event.startDate);
-          const end = new Date(event.endDate);
+          // end date used for duration calculation if needed
+          // const end = new Date(event.endDate);
           
           // Format time in 24-hour European format (HH:MM)
           const formatTime24h = (date) => {
@@ -156,6 +152,7 @@ export const CalendarProvider = ({ children }) => {
     // Reload events every 30 seconds to stay in sync
     const interval = setInterval(loadEvents, 30000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Get events for today
@@ -270,15 +267,10 @@ export const CalendarProvider = ({ children }) => {
       // Prepare notes with automation settings
       const notes = serializeAutomationToNotes(eventData.notes || '', eventData.automation);
       
-      const eventToCreate = {
-        title: eventData.title,
-        startDate: startDate,
-        endDate: endDate,
-        location: eventData.location,
-        notes: notes,
-        calendar: eventData.calendar,
-        isAllDay: eventData.allDay || false
-      };
+      // TODO: Event creation via CalDAV not yet implemented
+      // When implemented, create event with:
+      // { title, startDate, endDate, location, notes, calendar, isAllDay: eventData.allDay }
+      console.log('Event data prepared:', { title: eventData.title, startDate, endDate, notes });
       
       // Create in Apple Calendar via backend
       console.warn('Event creation not yet implemented via CalDAV API');

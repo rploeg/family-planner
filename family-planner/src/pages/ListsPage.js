@@ -74,7 +74,6 @@ const ListsPage = () => {
         const text = typeof ingredient === 'string' ? ingredient : ingredient.displayText;
         await addItem(groceryList.id, text, `Recept: ${recipeName}`, 'household');
       }
-      }
       
       // If meal info is provided, add the meal to the meal plan
       if (mealInfo && mealInfo.date) {

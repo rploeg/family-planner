@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../context/CalendarContext';
 import { useMeals } from '../context/MealsContext';
-import { useLoxone } from '../context/LoxoneContext';
-import { useLists } from '../context/ListsContext';
 import { useTranslation } from 'react-i18next';
 import weatherService from '../services/weatherService';
 import api from '../services/api';
@@ -13,11 +11,9 @@ import './BriefingPage.css';
 const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
   const { getTodayEvents, events } = useCalendar();
   const { getMealsForDate } = useMeals();
-  const { lists } = useLists();
   const { t, i18n } = useTranslation();
   const [weather, setWeather] = useState(null);
   const [rooms, setRooms] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
   const [loxoneAvailable, setLoxoneAvailable] = useState(false);
   const [energyData, setEnergyData] = useState(null);
   const [sensorsData, setSensorsData] = useState(null);
@@ -125,10 +121,9 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
       setLoxoneAvailable(status.initialized);
 
       if (status.initialized) {
-        // Load real room data, suggestions, energy and sensors
-        const [roomsData, suggestionsData, energyResponse, sensorsResponse, lightsResponse] = await Promise.all([
+        // Load real room data, energy and sensors
+        const [roomsData, energyResponse, sensorsResponse, lightsResponse] = await Promise.all([
           api.getLoxoneRooms(),
-          api.getLoxoneSuggestions(),
           api.getLoxoneEnergy(),
           api.getLoxoneSensors(),
           api.getLoxoneLights()
@@ -137,7 +132,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
         console.log('Sensors data:', sensorsResponse);
         console.log('Lights data:', lightsResponse);
         setRooms(roomsData);
-        setSuggestions(suggestionsData);
         setEnergyData(energyResponse);
         setSensorsData(sensorsResponse);
         setLightsData(lightsResponse);

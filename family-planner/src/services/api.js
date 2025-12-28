@@ -162,10 +162,6 @@ class ApiService {
     return this.request('/api/loxone/rooms');
   }
 
-  async getLoxoneSuggestions() {
-    return this.request('/api/loxone/suggestions');
-  }
-
   async getLoxoneStatus() {
     return this.request('/api/loxone/status');
   }

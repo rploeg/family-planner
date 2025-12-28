@@ -9,7 +9,7 @@ import './WeekTimeline.css';
 
 const WeekTimeline = ({ onEventClick }) => {
   const { events } = useCalendar();
-  const { getMealsForDate, deleteMeal } = useMeals();
+  const { getMealsForDate } = useMeals();
   const { users } = useLoxone();
   const { i18n } = useTranslation();
   const [selectedWeek, setSelectedWeek] = useState(0); // 0 = current week
@@ -20,6 +20,7 @@ const WeekTimeline = ({ onEventClick }) => {
 
   useEffect(() => {
     generateWeekDays();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedWeek]);
 
   useEffect(() => {

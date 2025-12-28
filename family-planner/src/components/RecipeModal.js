@@ -4,6 +4,7 @@ import api from '../services/api';
 import './RecipeModal.css';
 
 const RecipeModal = ({ isOpen, onClose, onAddIngredients }) => {
+  // eslint-disable-next-line no-unused-vars
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [recipes, setRecipes] = useState([]);

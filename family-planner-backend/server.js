@@ -1095,30 +1095,6 @@ app.get('/api/loxone/rooms', async (req, res) => {
   }
 });
 
-app.get('/api/loxone/suggestions', async (req, res) => {
-  try {
-    if (!loxoneService.isInitialized) {
-      return res.json([]); // Return empty suggestions if Loxone not configured
-    }
-    
-    // Get upcoming events from calendar
-    const now = new Date();
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const events = await calDAVService.getEvents(
-      now.toISOString().split('T')[0],
-      tomorrow.toISOString().split('T')[0]
-    );
-    
-    const rooms = await loxoneService.getRoomsInfo();
-    const suggestions = loxoneService.generateSuggestions(rooms, events);
-    
-    res.json(suggestions);
-  } catch (error) {
-    console.error('Error generating suggestions:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.get('/api/loxone/status', async (req, res) => {
   try {
     res.json({
