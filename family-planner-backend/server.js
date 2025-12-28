@@ -217,6 +217,19 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Status endpoint (alias for health check)
+app.get('/api/status', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    database: 'connected',
+    caldav: calDAVService.isInitialized ? 'connected' : 'disconnected',
+    googleCalendar: googleCalendarService.isInitialized ? 'connected' : 'disconnected',
+    loxone: loxoneService.isInitialized ? 'connected' : 'disconnected',
+    googleTasks: googleTasksService.isInitialized ? 'connected' : 'disconnected',
+    calendarSource: CALENDAR_SOURCE
+  });
+});
+
 // Get current configuration (all settings)
 app.get('/api/config', (req, res) => {
   res.json({
