@@ -76,12 +76,12 @@ fi
 echo -n "🏠 Loxone status: "
 LOXONE_RESPONSE=$(curl -sf "$BASE_URL/api/loxone/status" 2>/dev/null)
 if [ $? -eq 0 ]; then
-  CONNECTED=$(echo "$LOXONE_RESPONSE" | jq '.connected' 2>/dev/null)
-  USERS=$(echo "$LOXONE_RESPONSE" | jq '.users | length' 2>/dev/null)
-  if [ "$CONNECTED" = "true" ]; then
-    echo "✅ Connected ($USERS users)"
+  INITIALIZED=$(echo "$LOXONE_RESPONSE" | jq '.initialized' 2>/dev/null)
+  CONFIGURED=$(echo "$LOXONE_RESPONSE" | jq '.configured' 2>/dev/null)
+  if [ "$INITIALIZED" = "true" ]; then
+    echo "✅ Initialized (configured: $CONFIGURED)"
   else
-    echo "⚠️  Not connected"
+    echo "⚠️  Not initialized"
     ((WARNINGS++))
   fi
 else

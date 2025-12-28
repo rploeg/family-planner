@@ -9,8 +9,11 @@ class GoogleTasksService extends EventEmitter {
     this.config = config;
     this.tasksApi = null;
     this.isInitialized = false;
-    this.taskListId = null;
+    // Support multiple task lists
+    this.taskListId = null; // For shopping list (backward compatible)
     this.taskListName = config.taskListName || 'Shopping List';
+    this.defaultTaskListId = null; // For default Google Tasks list
+    this.taskLists = {}; // Map of listId -> Google taskListId
     this.tokenPath = path.join(__dirname, '..', 'data', 'google-tokens.json');
     
     // Create OAuth2 client immediately so getAuthUrl() works before initialize()
@@ -31,6 +34,7 @@ class GoogleTasksService extends EventEmitter {
       if (await this.loadSavedTokens()) {
         await this.setupTasksApi();
         await this.findOrCreateTaskList();
+        await this.findDefaultTaskList();
         this.isInitialized = true;
         console.log('✓ Google Tasks service ready');
         return true;
@@ -73,6 +77,7 @@ class GoogleTasksService extends EventEmitter {
       
       await this.setupTasksApi();
       await this.findOrCreateTaskList();
+      await this.findDefaultTaskList();
       this.isInitialized = true;
       
       console.log('✓ Google Tasks authenticated successfully');
@@ -165,23 +170,82 @@ class GoogleTasksService extends EventEmitter {
   }
 
   /**
-   * Get all tasks from the shopping list
+   * Find the default Google Tasks list (for regular tasks, not shopping)
    */
-  async getTasks() {
+  async findDefaultTaskList() {
+    try {
+      // The default list has a special ID "@default"
+      const response = await this.tasksApi.tasklists.get({
+        tasklist: '@default'
+      });
+      
+      this.defaultTaskListId = response.data.id;
+      console.log(`  Found default Google Tasks list: ${response.data.title}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error finding default task list:', error.message);
+      // Fallback: try to find a list named "Tasks" or similar
+      try {
+        const listsResponse = await this.tasksApi.tasklists.list();
+        const taskLists = listsResponse.data.items || [];
+        // The first list is usually the default
+        if (taskLists.length > 0) {
+          this.defaultTaskListId = taskLists[0].id;
+          console.log(`  Using first task list as default: ${taskLists[0].title}`);
+          return taskLists[0];
+        }
+      } catch (e) {
+        console.error('Error listing task lists:', e.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get the correct Google Task list ID based on list type
+   * @param {string} listType - 'grocery' for shopping list, 'tasks' for default list
+   */
+  getTaskListIdForType(listType) {
+    if (listType === 'tasks') {
+      return this.defaultTaskListId;
+    }
+    return this.taskListId; // grocery/shopping list
+  }
+
+  /**
+   * Get all tasks from a specific list (with pagination support)
+   * @param {string} listType - 'grocery' for shopping list, 'tasks' for default list
+   */
+  async getTasks(listType = 'grocery') {
     if (!this.isInitialized) {
       throw new Error('Google Tasks service not initialized');
     }
 
+    const taskListId = this.getTaskListIdForType(listType);
+    const listName = listType === 'tasks' ? 'default Tasks' : 'Shopping';
+
     try {
-      const response = await this.tasksApi.tasks.list({
-        tasklist: this.taskListId,
-        showCompleted: true,
-        showHidden: true
-      });
+      let allTasks = [];
+      let pageToken = null;
       
-      const tasks = response.data.items || [];
+      // Fetch all pages of tasks
+      do {
+        const response = await this.tasksApi.tasks.list({
+          tasklist: taskListId,
+          showCompleted: true,
+          showHidden: true,
+          maxResults: 100,
+          pageToken: pageToken
+        });
+        
+        const tasks = response.data.items || [];
+        allTasks = allTasks.concat(tasks);
+        pageToken = response.data.nextPageToken;
+      } while (pageToken);
       
-      return tasks.map(task => ({
+      console.log(`  Fetched ${allTasks.length} tasks from Google ${listName} list`);
+      
+      return allTasks.map(task => ({
         id: task.id,
         title: task.title,
         notes: task.notes || '',
@@ -192,27 +256,37 @@ class GoogleTasksService extends EventEmitter {
         googleTaskId: task.id
       }));
     } catch (error) {
-      console.error('Error fetching Google Tasks:', error.message);
+      console.error(`Error fetching Google ${listName} Tasks:`, error.message);
       throw error;
     }
   }
 
   /**
    * Create a new task
+   * @param {string} listType - 'grocery' for shopping list, 'tasks' for default list
    */
-  async createTask(taskData) {
+  async createTask(taskData, listType = 'grocery') {
     if (!this.isInitialized) {
       throw new Error('Google Tasks service not initialized');
     }
 
+    const taskListId = this.getTaskListIdForType(listType);
+
     try {
+      const requestBody = {
+        title: taskData.title || taskData.name,
+        notes: taskData.notes || taskData.category || '',
+        status: taskData.completed ? 'completed' : 'needsAction'
+      };
+      
+      // Add due date if provided (for tasks)
+      if (taskData.dueDate) {
+        requestBody.due = new Date(taskData.dueDate).toISOString();
+      }
+
       const response = await this.tasksApi.tasks.insert({
-        tasklist: this.taskListId,
-        requestBody: {
-          title: taskData.title || taskData.name,
-          notes: taskData.notes || taskData.category || '',
-          status: taskData.completed ? 'completed' : 'needsAction'
-        }
+        tasklist: taskListId,
+        requestBody
       });
       
       console.log(`  ✓ Created Google Task: ${taskData.title || taskData.name}`);
@@ -225,11 +299,14 @@ class GoogleTasksService extends EventEmitter {
 
   /**
    * Update an existing task
+   * @param {string} listType - 'grocery' for shopping list, 'tasks' for default list
    */
-  async updateTask(taskId, taskData) {
+  async updateTask(taskId, taskData, listType = 'grocery') {
     if (!this.isInitialized) {
       throw new Error('Google Tasks service not initialized');
     }
+
+    const taskListId = this.getTaskListIdForType(listType);
 
     try {
       const updateData = {
@@ -246,9 +323,13 @@ class GoogleTasksService extends EventEmitter {
           updateData.completed = new Date().toISOString();
         }
       }
+
+      if (taskData.dueDate !== undefined) {
+        updateData.due = taskData.dueDate ? new Date(taskData.dueDate).toISOString() : null;
+      }
       
       const response = await this.tasksApi.tasks.patch({
-        tasklist: this.taskListId,
+        tasklist: taskListId,
         task: taskId,
         requestBody: updateData
       });
@@ -262,15 +343,18 @@ class GoogleTasksService extends EventEmitter {
 
   /**
    * Delete a task
+   * @param {string} listType - 'grocery' for shopping list, 'tasks' for default list
    */
-  async deleteTask(taskId) {
+  async deleteTask(taskId, listType = 'grocery') {
     if (!this.isInitialized) {
       throw new Error('Google Tasks service not initialized');
     }
 
+    const taskListId = this.getTaskListIdForType(listType);
+
     try {
       await this.tasksApi.tasks.delete({
-        tasklist: this.taskListId,
+        tasklist: taskListId,
         task: taskId
       });
       

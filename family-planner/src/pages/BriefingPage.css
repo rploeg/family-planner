@@ -49,6 +49,9 @@
 
 .loxone-live-section {
   grid-column: 1 / -1;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .current-time {
@@ -682,18 +685,18 @@
 /* Loxone Live Data Section */
 .loxone-live-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
 }
 
 .loxone-live-card {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.2s ease;
 }
 
@@ -703,60 +706,65 @@
 }
 
 .loxone-live-card.energy-card {
-  border-left: 3px solid #FFC107;
+  border-left: 2px solid #FFC107;
 }
 
 .loxone-live-card.temp-card {
-  border-left: 3px solid #FF5722;
+  border-left: 2px solid #00BCD4;
 }
 
 .loxone-live-card.humidity-card {
-  border-left: 3px solid #2196F3;
+  border-left: 2px solid #8BC34A;
 }
 
 .loxone-live-card.occupancy-card {
-  border-left: 3px solid #9C27B0;
+  border-left: 2px solid #FF9800;
 }
 
 .loxone-live-card.light-card {
-  border-left: 3px solid #FFC107;
+  border-left: 2px solid #FFC107;
 }
 
 .loxone-live-card .card-icon {
-  font-size: 32px;
+  font-size: 18px;
   flex-shrink: 0;
 }
 
 .loxone-live-card .card-content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   flex: 1;
+  min-width: 0;
 }
 
 .loxone-live-card .card-label {
-  font-size: 11px;
+  font-size: 8px;
   font-weight: 500;
-  color: #999;
+  color: #777;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .loxone-live-card .card-value {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   color: #fff;
-  line-height: 1;
+  line-height: 1.2;
 }
 
 .loxone-live-card .card-sublabel {
-  font-size: 11px;
-  color: #666;
-  margin-top: 2px;
+  font-size: 8px;
+  color: #555;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  line-height: 1.2;
 }
 
 /* Smart Alerts */
@@ -869,14 +877,13 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 4px;
 }
 
 .trend-indicator {
-  font-size: 16px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
 }
 
 .trend-up {
@@ -895,14 +902,14 @@
 }
 
 .card-cost {
-  font-size: 10px;
+  font-size: 8px;
   color: #8BC34A;
   font-weight: 600;
 }
 
 .comfort-badge {
-  font-size: 9px;
-  padding: 2px 6px;
+  font-size: 7px;
+  padding: 1px 4px;
   border-radius: 4px;
   color: #fff;
   font-weight: 600;
@@ -916,7 +923,7 @@
   }
 
   .loxone-live-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .suggestions-grid {

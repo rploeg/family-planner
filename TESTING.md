@@ -5,6 +5,7 @@
 Run through this checklist before deploying to production.
 
 ### 1. Backend Health Check
+
 ```bash
 # Check backend is running
 curl -s "http://localhost:3002/api/status"
@@ -23,6 +24,7 @@ curl -s "http://localhost:3002/api/meals" | jq 'length'
 ```
 
 ### 2. Frontend Build Check
+
 ```bash
 cd family-planner
 npm run build
@@ -36,7 +38,7 @@ npm run build
 ### 📅 Briefing Page (Homepage)
 
 | Test | Steps | Expected Result |
-|------|-------|-----------------|
+| ---- | ----- | --------------- |
 | Page loads | Open app at `/` | Briefing page displays without errors |
 | Calendar events show | Check "Today" section | Events for today appear with times |
 | All-day events | Check events marked "Hele dag" | All-day events show at top |
@@ -47,7 +49,7 @@ npm run build
 ### 📋 Lists Page
 
 | Test | Steps | Expected Result |
-|------|-------|-----------------|
+| ---- | ----- | --------------- |
 | Lists load | Navigate to Lists tab | All lists appear (Boodschappen, Taken, etc.) |
 | Switch lists | Click different list | Items update to selected list |
 | Add item | Type item, press Enter or + | Item added to list |
@@ -61,7 +63,7 @@ npm run build
 ### 📅 Calendar Page
 
 | Test | Steps | Expected Result |
-|------|-------|-----------------|
+| ---- | ----- | --------------- |
 | Calendar loads | Navigate to Calendar tab | Calendar grid displays |
 | Events show | Check days with events | Event dots/indicators visible |
 | Day view | Tap a day | Events for that day display |
@@ -71,7 +73,7 @@ npm run build
 ### 📆 Week View
 
 | Test | Steps | Expected Result |
-|------|-------|-----------------|
+| ---- | ----- | --------------- |
 | Week displays | Navigate to Week tab | 7 days shown with events |
 | Navigate weeks | Use arrows or swipe | Previous/next week loads |
 | Events show | Check day columns | Events appear under correct days |
@@ -82,7 +84,7 @@ npm run build
 ### 🍳 Recipe Modal
 
 | Test | Steps | Expected Result |
-|------|-------|-----------------|
+| ---- | ----- | --------------- |
 | Open modal | Click recipe button | Modal opens with search |
 | Random recipe | Click 🎲 button | Random recipe loads |
 | Search recipe | Type name, click 🔍 | Results appear |
@@ -98,7 +100,7 @@ npm run build
 ### 🏠 Loxone Integration
 
 | Test | Steps | Expected Result |
-|------|-------|-----------------|
+| ---- | ----- | --------------- |
 | Connection status | Check briefing page | Loxone data loads (not "connecting...") |
 | Presence detection | Check who's home | Correct presence indicators |
 | Temperature sensors | Check sensor values | Temperature values display |
@@ -160,6 +162,7 @@ curl -s "http://localhost:3002/api/loxone/sensors" | jq 'keys'
 ## Common Issues & Fixes
 
 ### Backend won't start
+
 ```bash
 # Check if port is in use
 lsof -i :3002 | grep LISTEN
@@ -172,6 +175,7 @@ cd family-planner-backend && node server.js
 ```
 
 ### Frontend won't start
+
 ```bash
 # Check if port is in use
 lsof -i :3000 | grep LISTEN
@@ -184,16 +188,19 @@ cd family-planner && npm start
 ```
 
 ### Loxone not connecting
+
 1. Check `.env` file has correct credentials
 2. Verify Loxone Miniserver is accessible on network
 3. Check backend logs for connection errors
 
 ### Calendar events not loading
+
 1. Check CalDAV credentials in `.env`
 2. Verify Apple Calendar is accessible
 3. Check backend logs for CalDAV errors
 
 ### Database issues
+
 ```bash
 # Check database exists
 ls -la family-planner-backend/data/
@@ -294,6 +301,7 @@ fi
 ```
 
 Make it executable:
+
 ```bash
 chmod +x test-api.sh
 ./test-api.sh

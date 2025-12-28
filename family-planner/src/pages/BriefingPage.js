@@ -570,13 +570,9 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
               <div className="loxone-live-card energy-card">
                 <div className="card-icon">⚡</div>
                 <div className="card-content">
-                  <div className="card-header">
-                    <div className="card-label">{i18n.language === 'nl' ? 'Huidig Verbruik' : 'Current Usage'}</div>
-                    {powerTrend && (
-                      <span className={`trend-indicator trend-${powerTrend}`}>
-                        {powerTrend === 'up' ? '↑' : powerTrend === 'down' ? '↓' : '→'}
-                      </span>
-                    )}
+                  <div className="card-label">
+                    {i18n.language === 'nl' ? 'Huidig Verbruik' : 'Current Usage'}
+                    {powerTrend && <span className={`trend-indicator trend-${powerTrend}`}>{powerTrend === 'up' ? '↑' : powerTrend === 'down' ? '↓' : '→'}</span>}
                   </div>
                   <div className="card-value">{(energyData.currentUsage * 1000).toFixed(0)} W</div>
                   <div className="card-sublabel">
@@ -599,11 +595,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
                     <div className="card-value" style={{ color: comfort.color }}>{tempSensor.value.toFixed(1)}°C</div>
                     <div className="card-sublabel">
                       <span>{tempSensor.name}</span>
-                      <span className="comfort-badge" style={{ background: comfort.color }}>
-                        {comfort.level === 'cold' ? (i18n.language === 'nl' ? 'Koud' : 'Cold') : 
-                         comfort.level === 'warm' ? (i18n.language === 'nl' ? 'Warm' : 'Warm') :
-                         (i18n.language === 'nl' ? 'Comfortabel' : 'Comfortable')}
-                      </span>
+                      <span className="comfort-badge" style={{ background: comfort.color }}>{comfort.level === 'cold' ? 'Koud' : comfort.level === 'warm' ? 'Warm' : 'OK'}</span>
                     </div>
                   </div>
                 </div>
@@ -620,15 +612,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
                   <div className="card-content">
                     <div className="card-label">{i18n.language === 'nl' ? 'Luchtvochtigheid' : 'Humidity'}</div>
                     <div className="card-value" style={{ color: status.color }}>{humiditySensor.value.toFixed(0)}%</div>
-                    <div className="card-sublabel">
-                      <span>{humiditySensor.name}</span>
-                      {status.warning && (
-                        <span className="comfort-badge" style={{ background: status.color }}>
-                          {status.status === 'dry' ? (i18n.language === 'nl' ? 'Droog' : 'Dry') : 
-                           (i18n.language === 'nl' ? 'Vochtig' : 'Humid')}
-                        </span>
-                      )}
-                    </div>
+                    <div className="card-sublabel">{humiditySensor.name}</div>
                   </div>
                 </div>
               );
@@ -640,7 +624,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
                 <div className="card-icon">{rooms[0].occupied ? '👤' : '🚪'}</div>
                 <div className="card-content">
                   <div className="card-label">{i18n.language === 'nl' ? 'Aanwezigheid' : 'Occupancy'}</div>
-                  <div className="card-value">{rooms[0].occupied ? (i18n.language === 'nl' ? 'Bezet' : 'Occupied') : (i18n.language === 'nl' ? 'Leeg' : 'Empty')}</div>
+                  <div className="card-value">{rooms[0].occupied ? 'Bezet' : 'Leeg'}</div>
                   <div className="card-sublabel">{rooms[0].room}</div>
                 </div>
               </div>

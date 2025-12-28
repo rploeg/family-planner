@@ -64,31 +64,36 @@ let googleSyncTimer = null;
 async function syncItemToGoogle(item, action = 'upsert') {
   if (!googleTasksService.isInitialized) return null;
   
+  // Determine list type based on the item's listId
+  const listType = await getListType(item.listId);
+  
   try {
     if (action === 'create' || (action === 'upsert' && !item.googleTaskId)) {
       const googleId = await googleTasksService.createTask({
         name: item.text,
         notes: item.category || '',
-        completed: item.checked === 1
-      });
+        completed: item.checked === 1,
+        dueDate: item.dueDate
+      }, listType);
       // Update the database with the Google Task ID
       await db.run(
         'UPDATE shopping_list_items SET googleTaskId = ? WHERE id = ?',
         [googleId, item.id]
       );
-      console.log(`  ↑ Synced to Google Tasks: ${item.text}`);
+      console.log(`  ↑ Synced to Google Tasks (${listType}): ${item.text}`);
       return googleId;
     } else if (action === 'update' && item.googleTaskId) {
       await googleTasksService.updateTask(item.googleTaskId, {
         title: item.text,
         notes: item.category || '',
-        completed: item.checked === 1
-      });
-      console.log(`  ↔ Updated in Google Tasks: ${item.text}`);
+        completed: item.checked === 1,
+        dueDate: item.dueDate
+      }, listType);
+      console.log(`  ↔ Updated in Google Tasks (${listType}): ${item.text}`);
       return item.googleTaskId;
     } else if (action === 'delete' && item.googleTaskId) {
-      await googleTasksService.deleteTask(item.googleTaskId);
-      console.log(`  ↓ Deleted from Google Tasks: ${item.text}`);
+      await googleTasksService.deleteTask(item.googleTaskId, listType);
+      console.log(`  ↓ Deleted from Google Tasks (${listType}): ${item.text}`);
       return null;
     }
   } catch (error) {
@@ -97,16 +102,43 @@ async function syncItemToGoogle(item, action = 'upsert') {
   return null;
 }
 
-// Bidirectional sync function
+// Helper to get list type from listId
+async function getListType(listId) {
+  try {
+    const list = await db.get('SELECT type FROM shopping_lists WHERE id = ?', [listId]);
+    return list?.type || 'grocery';
+  } catch {
+    return 'grocery';
+  }
+}
+
+// Bidirectional sync function - syncs both grocery and task lists
 async function performBidirectionalSync() {
   if (!googleTasksService.isInitialized) return;
   
   try {
-    // Get all items from database
-    const dbItems = await db.all('SELECT * FROM shopping_list_items');
+    // Sync grocery list (list1 → Shopping List)
+    await syncListWithGoogle('list1', 'grocery');
     
-    // Get all tasks from Google
-    const googleTasks = await googleTasksService.getTasks();
+    // Sync task list (Taken → default Google Tasks)
+    const taskList = await db.get("SELECT id FROM shopping_lists WHERE type = 'tasks' LIMIT 1");
+    if (taskList) {
+      await syncListWithGoogle(taskList.id, 'tasks');
+    }
+    
+  } catch (error) {
+    console.error('Bidirectional sync error:', error.message);
+  }
+}
+
+// Sync a specific list with Google Tasks
+async function syncListWithGoogle(localListId, listType) {
+  try {
+    // Get items from database for this specific list
+    const dbItems = await db.all('SELECT * FROM shopping_list_items WHERE listId = ?', [localListId]);
+    
+    // Get all tasks from Google for this list type
+    const googleTasks = await googleTasksService.getTasks(listType);
     
     // Create lookup maps
     const dbByGoogleId = new Map(dbItems.filter(i => i.googleTaskId).map(i => [i.googleTaskId, i]));
@@ -117,7 +149,14 @@ async function performBidirectionalSync() {
     // Sync local items to Google (items without googleTaskId)
     for (const item of dbItems) {
       if (!item.googleTaskId) {
-        await syncItemToGoogle(item, 'create');
+        const googleId = await googleTasksService.createTask({
+          name: item.text,
+          notes: item.category || '',
+          completed: item.checked === 1,
+          dueDate: item.dueDate
+        }, listType);
+        await db.run('UPDATE shopping_list_items SET googleTaskId = ? WHERE id = ?', [googleId, item.id]);
+        console.log(`  ↑ Synced to Google (${listType}): ${item.text}`);
         created++;
       }
     }
@@ -131,11 +170,11 @@ async function performBidirectionalSync() {
         const now = new Date().toISOString();
         const newId = `google-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         await db.run(
-          `INSERT INTO shopping_list_items (id, listId, text, checked, addedBy, category, createdAt, updatedAt, googleTaskId)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [newId, 'list1', googleTask.title, googleTask.completed ? 1 : 0, 'Google', googleTask.notes || 'household', now, now, googleTask.id]
+          `INSERT INTO shopping_list_items (id, listId, text, checked, addedBy, category, createdAt, updatedAt, googleTaskId, dueDate)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [newId, localListId, googleTask.title, googleTask.completed ? 1 : 0, 'Google', googleTask.notes || 'household', now, now, googleTask.id, googleTask.dueDate || null]
         );
-        console.log(`  ↓ Pulled from Google Tasks: ${googleTask.title}`);
+        console.log(`  ↓ Pulled from Google (${listType}): ${googleTask.title}`);
         pulledNew++;
       } else {
         // Check if Google version is newer and different
@@ -147,15 +186,19 @@ async function performBidirectionalSync() {
           const googleChecked = googleTask.completed ? 1 : 0;
           if (dbItem.text !== googleTask.title || dbItem.checked !== googleChecked) {
             await db.run(
-              `UPDATE shopping_list_items SET text = ?, checked = ?, updatedAt = ? WHERE id = ?`,
-              [googleTask.title, googleChecked, googleTask.updatedAt, dbItem.id]
+              `UPDATE shopping_list_items SET text = ?, checked = ?, updatedAt = ?, dueDate = ? WHERE id = ?`,
+              [googleTask.title, googleChecked, googleTask.updatedAt, googleTask.dueDate || null, dbItem.id]
             );
-            console.log(`  ↓ Updated from Google: ${googleTask.title}`);
+            console.log(`  ↓ Updated from Google (${listType}): ${googleTask.title}`);
             pulledUpdates++;
           }
         } else if (dbUpdated > googleUpdated) {
           // Local is newer - update Google
-          await syncItemToGoogle(dbItem, 'update');
+          await googleTasksService.updateTask(dbItem.googleTaskId, {
+            title: dbItem.text,
+            completed: dbItem.checked === 1,
+            dueDate: dbItem.dueDate
+          }, listType);
           updated++;
         }
       }
@@ -166,17 +209,17 @@ async function performBidirectionalSync() {
       if (item.googleTaskId && !googleById.has(item.googleTaskId)) {
         // Task was deleted from Google - delete locally too
         await db.run('DELETE FROM shopping_list_items WHERE id = ?', [item.id]);
-        console.log(`  ↓ Deleted (removed from Google): ${item.text}`);
+        console.log(`  ↓ Deleted (removed from Google ${listType}): ${item.text}`);
         deleted++;
       }
     }
     
     if (created + updated + pulledNew + pulledUpdates + deleted > 0) {
-      console.log(`✓ Bidirectional sync: ↑${created} created, ↔${updated} updated, ↓${pulledNew} new, ↓${pulledUpdates} updates, ✗${deleted} deleted`);
+      console.log(`✓ Sync ${listType}: ↑${created} created, ↔${updated} updated, ↓${pulledNew} new, ↓${pulledUpdates} updates, ✗${deleted} deleted`);
     }
     
   } catch (error) {
-    console.error('Bidirectional sync error:', error.message);
+    console.error(`Sync error for ${listType}:`, error.message);
   }
 }
 
@@ -571,8 +614,8 @@ app.post('/api/lists/:listId/items', async (req, res) => {
       [id, listId, text, addedBy, category || 'household', forMeal || null, dueDate || null, now, now]
     );
     
-    // Auto-sync to Google Tasks
-    const newItem = { id, text, category: category || 'household', checked: 0 };
+    // Auto-sync to Google Tasks (include listId so it syncs to the correct Google list)
+    const newItem = { id, listId, text, category: category || 'household', checked: 0, dueDate: dueDate || null };
     syncItemToGoogle(newItem, 'create').catch(err => console.error('Auto-sync error:', err.message));
     
     res.json({ success: true, id });
