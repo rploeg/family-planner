@@ -23,6 +23,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
   const [sensorsData, setSensorsData] = useState(null);
   const [lightsData, setLightsData] = useState(null);
   const [prevEnergyData, setPrevEnergyData] = useState(null);
+  const [tasksWithDueDate, setTasksWithDueDate] = useState([]);
   const todayEvents = getTodayEvents();
 
   console.log('BriefingPage received props:', {
@@ -82,6 +83,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
   useEffect(() => {
     loadWeather();
     loadLoxoneData();
+    loadTasksWithDueDate();
 
     // Refresh Loxone data every 60 seconds
     const loxoneInterval = setInterval(() => {
@@ -96,6 +98,15 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
   }, []);
 
   // No longer need to update smart alerts - they come from props now
+
+  const loadTasksWithDueDate = async () => {
+    try {
+      const tasks = await api.getTasksWithDueDate();
+      setTasksWithDueDate(tasks);
+    } catch (error) {
+      console.error('Failed to load tasks with due dates:', error);
+    }
+  };
 
   const loadWeather = async () => {
     try {
@@ -286,6 +297,18 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
   const tomorrowMeals = getMealsForDate(getTomorrowDateString());
   const dayAfterTomorrowMeals = getMealsForDate(getDayAfterTomorrowDateString());
 
+  // Filter tasks by date
+  const getTasksForDate = (dateString) => {
+    return tasksWithDueDate.filter(task => {
+      if (!task.dueDate || task.checked) return false;
+      return task.dueDate === dateString;
+    });
+  };
+
+  const todayTasks = getTasksForDate(getTodayDateString());
+  const tomorrowTasks = getTasksForDate(getTomorrowDateString());
+  const dayAfterTomorrowTasks = getTasksForDate(getDayAfterTomorrowDateString());
+
   const getMealIcon = (type) => {
     const icons = {
       breakfast: '🍳',
@@ -365,6 +388,13 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
               <span className="stat-value">{todayEvents.length}</span>
               <span className="stat-label">{i18n.language === 'nl' ? 'Events' : 'Events'}</span>
             </div>
+            {todayTasks.length > 0 && (
+              <div className="summary-stat">
+                <span className="stat-icon">✓</span>
+                <span className="stat-value">{todayTasks.length}</span>
+                <span className="stat-label">{i18n.language === 'nl' ? 'Taken' : 'Tasks'}</span>
+              </div>
+            )}
             {energyData && (
               <div className="summary-stat">
                 <span className="stat-icon">⚡</span>
@@ -411,7 +441,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
       {/* Today's Events Section */}
       <section className="briefing-section events-section">
         <h3 className="section-title">
-          {t('briefing.todaysEvents')} ({todayEvents.length})
+          {t('briefing.todaysEvents')} ({todayEvents.length + todayTasks.length})
         </h3>
         
         {/* Today's Meals */}
@@ -425,8 +455,21 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
             ))}
           </div>
         )}
+
+        {/* Today's Tasks */}
+        {todayTasks.length > 0 && (
+          <div className="tasks-preview">
+            {todayTasks.map(task => (
+              <div key={task.id} className="task-preview-item">
+                <span className="task-preview-icon">✓</span>
+                <span className="task-preview-title">{task.text}</span>
+                <span className="task-preview-list">{task.listName}</span>
+              </div>
+            ))}
+          </div>
+        )}
         
-        {todayEvents.length === 0 ? (
+        {todayEvents.length === 0 && todayTasks.length === 0 ? (
           <p className="empty-message">{t('calendar.noEvents')}</p>
         ) : (
           <div className="briefing-events">
@@ -440,7 +483,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
       {/* Tomorrow's Events Section */}
       <section className="briefing-section events-section">
         <h3 className="section-title">
-          {i18n.language === 'nl' ? 'Morgen' : 'Tomorrow'} ({tomorrowEvents.length})
+          {i18n.language === 'nl' ? 'Morgen' : 'Tomorrow'} ({tomorrowEvents.length + tomorrowTasks.length})
         </h3>
         
         {/* Tomorrow's Meals */}
@@ -454,8 +497,21 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
             ))}
           </div>
         )}
+
+        {/* Tomorrow's Tasks */}
+        {tomorrowTasks.length > 0 && (
+          <div className="tasks-preview">
+            {tomorrowTasks.map(task => (
+              <div key={task.id} className="task-preview-item">
+                <span className="task-preview-icon">✓</span>
+                <span className="task-preview-title">{task.text}</span>
+                <span className="task-preview-list">{task.listName}</span>
+              </div>
+            ))}
+          </div>
+        )}
         
-        {tomorrowEvents.length === 0 ? (
+        {tomorrowEvents.length === 0 && tomorrowTasks.length === 0 ? (
           <p className="empty-message">{t('calendar.noEvents')}</p>
         ) : (
           <div className="briefing-events">
@@ -469,7 +525,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
       {/* Day After Tomorrow's Events Section */}
       <section className="briefing-section events-section">
         <h3 className="section-title">
-          {getDayAfterTomorrowLabel()} ({dayAfterTomorrowEvents.length})
+          {getDayAfterTomorrowLabel()} ({dayAfterTomorrowEvents.length + dayAfterTomorrowTasks.length})
         </h3>
         
         {/* Day After Tomorrow's Meals */}
@@ -483,8 +539,21 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
             ))}
           </div>
         )}
+
+        {/* Day After Tomorrow's Tasks */}
+        {dayAfterTomorrowTasks.length > 0 && (
+          <div className="tasks-preview">
+            {dayAfterTomorrowTasks.map(task => (
+              <div key={task.id} className="task-preview-item">
+                <span className="task-preview-icon">✓</span>
+                <span className="task-preview-title">{task.text}</span>
+                <span className="task-preview-list">{task.listName}</span>
+              </div>
+            ))}
+          </div>
+        )}
         
-        {dayAfterTomorrowEvents.length === 0 ? (
+        {dayAfterTomorrowEvents.length === 0 && dayAfterTomorrowTasks.length === 0 ? (
           <p className="empty-message">{t('calendar.noEvents')}</p>
         ) : (
           <div className="briefing-events">

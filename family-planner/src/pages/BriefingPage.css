@@ -310,6 +310,50 @@
   font-weight: 500;
 }
 
+.tasks-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: rgba(33, 150, 243, 0.08);
+  border-radius: 8px;
+  border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+.task-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(33, 150, 243, 0.15);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.task-preview-item:hover {
+  background: rgba(33, 150, 243, 0.25);
+}
+
+.task-preview-icon {
+  font-size: 14px;
+  color: #2196F3;
+  font-weight: bold;
+}
+
+.task-preview-title {
+  font-size: 13px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.task-preview-list {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  padding-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .events-section .briefing-events {
   display: flex;
   flex-direction: column;

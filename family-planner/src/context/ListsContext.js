@@ -45,12 +45,13 @@ export const ListsProvider = ({ children }) => {
   }, [loadLists]);
 
   // Create new list
-  const createList = async (name, icon = '📝') => {
+  const createList = async (name, icon = '📝', type = 'grocery') => {
     try {
       const newList = {
         id: Date.now().toString(),
         name,
         icon,
+        type,
         items: []
       };
       await api.addList(newList);
@@ -76,7 +77,7 @@ export const ListsProvider = ({ children }) => {
   };
 
   // Add item to list
-  const addItem = async (listId, text, addedBy = 'User', category = 'household', forMeal = null) => {
+  const addItem = async (listId, text, addedBy = 'User', category = 'household', forMeal = null, dueDate = null) => {
     try {
       const newItem = {
         id: `${listId}-${Date.now()}`,
@@ -85,7 +86,8 @@ export const ListsProvider = ({ children }) => {
         completed: false,  // For frontend compatibility
         addedBy,
         category,
-        forMeal
+        forMeal,
+        dueDate
       };
       await api.addListItem(listId, newItem);
       
@@ -217,6 +219,38 @@ export const ListsProvider = ({ children }) => {
     }
   };
 
+  // Update item due date
+  const updateItemDueDate = async (listId, itemId, dueDate) => {
+    try {
+      const list = lists.find(l => l.id === listId);
+      const item = list?.items.find(i => i.id === itemId);
+      
+      if (item) {
+        await api.updateListItem(listId, itemId, { 
+          text: item.text,
+          checked: item.checked,
+          dueDate
+        });
+        
+        setLists(prev => prev.map(list => {
+          if (list.id === listId) {
+            return {
+              ...list,
+              items: list.items.map(item =>
+                item.id === itemId ? { ...item, dueDate } : item
+              )
+            };
+          }
+          return list;
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to update item due date:', err);
+      setError(err.message);
+      throw err;
+    }
+  };
+
   const value = {
     lists,
     loading,
@@ -228,7 +262,8 @@ export const ListsProvider = ({ children }) => {
     toggleItem,
     deleteItem,
     clearCompleted,
-    updateItemCategory
+    updateItemCategory,
+    updateItemDueDate
   };
 
   return (

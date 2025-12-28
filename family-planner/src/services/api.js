@@ -136,6 +136,15 @@ class ApiService {
     return this.request(`/api/events?${queryParams.toString()}`);
   }
 
+  // ============= TASKS WITH DUE DATES API =============
+  async getTasksWithDueDate(startDate, endDate) {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.append('startDate', startDate);
+    if (endDate) queryParams.append('endDate', endDate);
+    const query = queryParams.toString();
+    return this.request(`/api/tasks/due${query ? `?${query}` : ''}`);
+  }
+
   // ============= SETTINGS API =============
   async getSettings() {
     return this.request('/api/settings');

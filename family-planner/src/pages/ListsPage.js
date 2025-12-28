@@ -5,18 +5,25 @@ import RecipeModal from '../components/RecipeModal';
 import './ListsPage.css';
 
 const ListsPage = () => {
-  const { lists, createList, deleteList, addItem, toggleItem, deleteItem, clearCompleted, updateItemCategory } = useLists();
+  const { lists, createList, deleteList, addItem, toggleItem, deleteItem, clearCompleted, updateItemCategory, updateItemDueDate } = useLists();
   const { t } = useTranslation();
   const [selectedList, setSelectedList] = useState(null);
   const [newItemText, setNewItemText] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('household');
+  const [newItemDueDate, setNewItemDueDate] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListIcon, setNewListIcon] = useState('📝');
+  const [newListType, setNewListType] = useState('grocery');
   const [showRecipeModal, setShowRecipeModal] = useState(false);
 
   const icons = ['🛒', '📝', '✓', '🏠', '🎯', '💡', '🎨', '🔧', '📚', '🎮', '⚽', '🍕'];
+
+  const listTypes = [
+    { value: 'grocery', label: '🛒 Boodschappen' },
+    { value: 'tasks', label: '✓ Taken' }
+  ];
 
   const categories = [
     { value: 'household', label: '🏠 Huishouden', icon: '🏠' },
@@ -26,19 +33,21 @@ const ListsPage = () => {
 
   const handleCreateList = () => {
     if (newListName.trim()) {
-      const list = createList(newListName, newListIcon);
+      const list = createList(newListName, newListIcon, newListType);
       setSelectedList(list.id);
       setNewListName('');
       setNewListIcon('📝');
+      setNewListType('grocery');
       setIsCreatingList(false);
     }
   };
 
   const handleAddItem = (listId) => {
     if (newItemText.trim()) {
-      addItem(listId, newItemText, 'User', newItemCategory);
+      addItem(listId, newItemText, 'User', newItemCategory, null, newItemDueDate || null);
       setNewItemText('');
       setNewItemCategory('household');
+      setNewItemDueDate('');
     }
   };
 
@@ -184,6 +193,15 @@ const ListsPage = () => {
                     </option>
                   ))}
                 </select>
+                {currentList.type === 'tasks' && (
+                  <input
+                    type="date"
+                    className="due-date-input"
+                    value={newItemDueDate}
+                    onChange={(e) => setNewItemDueDate(e.target.value)}
+                    placeholder="Datum"
+                  />
+                )}
                 <button 
                   className="add-item-btn"
                   onClick={() => handleAddItem(currentList.id)}
@@ -251,12 +269,26 @@ const ListsPage = () => {
                               🍽️ {item.forMeal}
                             </span>
                           )}
+                          {currentList.type === 'tasks' && item.dueDate && (
+                            <span className="item-due-date-tag" title={`Deadline: ${item.dueDate}`}>
+                              📅 {new Date(item.dueDate).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
+                            </span>
+                          )}
                         </div>
                         <span className="item-meta">
                           {item.addedBy && `${item.addedBy} • `}
                           {item.createdAt && new Date(item.createdAt).toLocaleDateString('nl-NL')}
                         </span>
                       </div>
+                      {currentList.type === 'tasks' && (
+                        <input
+                          type="date"
+                          className="item-due-date-input"
+                          value={item.dueDate || ''}
+                          onChange={(e) => updateItemDueDate(currentList.id, item.id, e.target.value || null)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
                       <select
                         className="item-category-selector"
                         value={item.category || 'household'}
@@ -313,6 +345,20 @@ const ListsPage = () => {
                       onClick={() => setNewListIcon(icon)}
                     >
                       {icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Type</label>
+                <div className="type-picker">
+                  {listTypes.map(type => (
+                    <button
+                      key={type.value}
+                      className={`type-option ${newListType === type.value ? 'selected' : ''}`}
+                      onClick={() => setNewListType(type.value)}
+                    >
+                      {type.label}
                     </button>
                   ))}
                 </div>

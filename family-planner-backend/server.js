@@ -486,12 +486,12 @@ app.get('/api/lists', async (req, res) => {
 
 app.post('/api/lists', async (req, res) => {
   try {
-    const { id, name } = req.body;
+    const { id, name, type = 'grocery', icon = '🛒' } = req.body;
     const now = new Date().toISOString();
     
     await db.run(
-      'INSERT INTO shopping_lists (id, name, createdAt, updatedAt) VALUES (?, ?, ?, ?)',
-      [id, name, now, now]
+      'INSERT INTO shopping_lists (id, name, type, icon, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, name, type, icon, now, now]
     );
     
     res.json({ success: true, id });
@@ -503,12 +503,31 @@ app.post('/api/lists', async (req, res) => {
 app.put('/api/lists/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, type, icon } = req.body;
     const now = new Date().toISOString();
     
+    // Build dynamic update query
+    const updates = ['updatedAt = ?'];
+    const values = [now];
+    
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+    if (type !== undefined) {
+      updates.push('type = ?');
+      values.push(type);
+    }
+    if (icon !== undefined) {
+      updates.push('icon = ?');
+      values.push(icon);
+    }
+    
+    values.push(id);
+    
     await db.run(
-      'UPDATE shopping_lists SET name = ?, updatedAt = ? WHERE id = ?',
-      [name, now, id]
+      `UPDATE shopping_lists SET ${updates.join(', ')} WHERE id = ?`,
+      values
     );
     
     res.json({ success: true });
@@ -530,13 +549,13 @@ app.delete('/api/lists/:id', async (req, res) => {
 app.post('/api/lists/:listId/items', async (req, res) => {
   try {
     const { listId } = req.params;
-    const { id, text, addedBy, category, forMeal } = req.body;
+    const { id, text, addedBy, category, forMeal, dueDate } = req.body;
     const now = new Date().toISOString();
     
     await db.run(
-      `INSERT INTO shopping_list_items (id, listId, text, checked, addedBy, category, forMeal, createdAt, updatedAt)
-       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)`,
-      [id, listId, text, addedBy, category || 'household', forMeal || null, now, now]
+      `INSERT INTO shopping_list_items (id, listId, text, checked, addedBy, category, forMeal, dueDate, createdAt, updatedAt)
+       VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
+      [id, listId, text, addedBy, category || 'household', forMeal || null, dueDate || null, now, now]
     );
     
     // Auto-sync to Google Tasks
@@ -552,7 +571,7 @@ app.post('/api/lists/:listId/items', async (req, res) => {
 app.put('/api/lists/:listId/items/:itemId', async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { text, checked, category } = req.body;
+    const { text, checked, category, dueDate } = req.body;
     const now = new Date().toISOString();
     
     const updates = [];
@@ -569,6 +588,10 @@ app.put('/api/lists/:listId/items/:itemId', async (req, res) => {
     if (category !== undefined) {
       updates.push('category = ?');
       params.push(category);
+    }
+    if (dueDate !== undefined) {
+      updates.push('dueDate = ?');
+      params.push(dueDate);
     }
     
     updates.push('updatedAt = ?');
@@ -605,6 +628,33 @@ app.delete('/api/lists/:listId/items/:itemId', async (req, res) => {
     }
     
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get tasks with due dates (for homepage and calendar)
+app.get('/api/tasks/due', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    let query = `
+      SELECT i.*, l.name as listName 
+      FROM shopping_list_items i 
+      JOIN shopping_lists l ON i.listId = l.id 
+      WHERE i.dueDate IS NOT NULL
+    `;
+    const params = [];
+    
+    if (startDate && endDate) {
+      query += ` AND i.dueDate >= ? AND i.dueDate <= ?`;
+      params.push(startDate, endDate);
+    }
+    
+    query += ` ORDER BY i.dueDate ASC`;
+    
+    const tasks = await db.all(query, params);
+    res.json(tasks);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

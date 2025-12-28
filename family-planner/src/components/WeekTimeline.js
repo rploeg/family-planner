@@ -3,6 +3,7 @@ import { useCalendar } from '../context/CalendarContext';
 import { useMeals } from '../context/MealsContext';
 import { useLoxone } from '../context/LoxoneContext';
 import { useTranslation } from 'react-i18next';
+import api from '../services/api';
 import MealPlanModal from './MealPlanModal';
 import './WeekTimeline.css';
 
@@ -15,10 +16,24 @@ const WeekTimeline = ({ onEventClick }) => {
   const [weekDays, setWeekDays] = useState([]);
   const [mealModalDate, setMealModalDate] = useState(null);
   const [editingMeal, setEditingMeal] = useState(null);
+  const [tasksWithDueDate, setTasksWithDueDate] = useState([]);
 
   useEffect(() => {
     generateWeekDays();
   }, [selectedWeek]);
+
+  useEffect(() => {
+    loadTasksWithDueDate();
+  }, []);
+
+  const loadTasksWithDueDate = async () => {
+    try {
+      const tasks = await api.getTasksWithDueDate();
+      setTasksWithDueDate(tasks);
+    } catch (error) {
+      console.error('Failed to load tasks with due dates:', error);
+    }
+  };
 
   const generateWeekDays = () => {
     const today = new Date();
@@ -113,6 +128,14 @@ const WeekTimeline = ({ onEventClick }) => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  };
+
+  const getTasksForDay = (date) => {
+    const dateStr = getDateString(date);
+    return tasksWithDueDate.filter(task => {
+      if (!task.dueDate || task.checked) return false;
+      return task.dueDate === dateStr;
+    });
   };
 
   const getEventsByPerson = (dayEvents) => {
@@ -240,6 +263,7 @@ const WeekTimeline = ({ onEventClick }) => {
         {weekDays.map((day, index) => {
           const dayEvents = getEventsForDay(day);
           const dayMeals = getMealsForDay(day);
+          const dayTasks = getTasksForDay(day);
           const eventsByPerson = getEventsByPerson(dayEvents);
           const dateInfo = formatDate(day);
           const today = isToday(day);
@@ -274,6 +298,19 @@ const WeekTimeline = ({ onEventClick }) => {
                   </button>
                 )}
               </div>
+
+              {/* Tasks Section */}
+              {dayTasks.length > 0 && (
+                <div className="day-tasks">
+                  {dayTasks.map(task => (
+                    <div key={task.id} className="task-item">
+                      <span className="task-icon">✓</span>
+                      <span className="task-title">{task.text}</span>
+                      <span className="task-list">{task.listName}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="day-events">
                 {dayEvents.length === 0 ? (

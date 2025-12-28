@@ -137,6 +137,33 @@ class DatabaseManager {
         }
       });
 
+      // Add dueDate column for task due dates
+      this.db.run(`
+        ALTER TABLE shopping_list_items ADD COLUMN dueDate TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding dueDate column:', err.message);
+        }
+      });
+
+      // Add type column to shopping_lists (grocery or tasks)
+      this.db.run(`
+        ALTER TABLE shopping_lists ADD COLUMN type TEXT DEFAULT 'grocery'
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding type column to shopping_lists:', err.message);
+        }
+      });
+
+      // Add icon column to shopping_lists
+      this.db.run(`
+        ALTER TABLE shopping_lists ADD COLUMN icon TEXT DEFAULT '🛒'
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding icon column to shopping_lists:', err.message);
+        }
+      });
+
       // Settings table
       this.db.run(`
         CREATE TABLE IF NOT EXISTS settings (
