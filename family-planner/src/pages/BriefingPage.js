@@ -131,26 +131,8 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
         setSensorsData(sensorsResponse);
         setLightsData(lightsResponse);
       } else {
-        // Use sample data to showcase the UI
-        const sampleRooms = [
-          { name: 'Home Office', actualTemp: 18, targetTemp: 21, status: 'Ready', occupied: false },
-          { name: 'Living Room', actualTemp: 22, targetTemp: 22, status: 'Occupied', occupied: true },
-          { name: 'Kitchen', actualTemp: 21, targetTemp: 21, status: 'Ready', occupied: false }
-        ];
-        
-        const sampleSuggestions = [
-          {
-            type: 'temperature',
-            room: 'Home Office',
-            message: 'Home Office is 18°C (target: 21°C). Warm up before work?',
-            priority: 'medium',
-            action: 'warm up'
-          }
-        ];
-        
-        setRooms(sampleRooms);
-        setSuggestions(sampleSuggestions);
-        setLoxoneAvailable(true); // Show sample data
+        // Loxone not available - don't show sample data
+        setLoxoneAvailable(false);
       }
     } catch (error) {
       console.error('Failed to load Loxone data:', error);
@@ -600,33 +582,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
                 </div>
               </div>
             )}
-          </div>
-        </section>
-      )}
-
-      {/* Loxone Suggestions Section */}
-      {loxoneAvailable && suggestions.length > 0 && (
-        <section className="briefing-section suggestions-section">
-          <h3 className="section-title">
-            💡 {i18n.language === 'nl' ? 'Suggesties' : 'Suggestions'}
-          </h3>
-          <div className="suggestions-grid">
-            {suggestions.map((suggestion, index) => (
-              <div key={index} className={`suggestion-card priority-${suggestion.priority}`}>
-                <div className="suggestion-header">
-                  <span className="suggestion-icon">
-                    {suggestion.type === 'temperature' ? '🌡️' : '📍'}
-                  </span>
-                  <span className="suggestion-room">{suggestion.room}</span>
-                </div>
-                <p className="suggestion-message">{suggestion.message}</p>
-                {suggestion.action && (
-                  <button className="suggestion-action">
-                    {suggestion.action}
-                  </button>
-                )}
-              </div>
-            ))}
           </div>
         </section>
       )}

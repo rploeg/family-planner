@@ -8,6 +8,7 @@ const CalDAVService = require('./services/CalDAVService');
 const GoogleTasksService = require('./services/GoogleTasksService');
 const GoogleCalendarService = require('./services/GoogleCalendarService');
 const LoxoneService = require('./services/LoxoneService');
+const RecipeService = require('./services/RecipeService');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -51,6 +52,9 @@ const loxoneService = new LoxoneService({
   username: process.env.LOXONE_USERNAME,
   password: process.env.LOXONE_PASSWORD
 });
+
+// Initialize Recipe Service
+const recipeService = new RecipeService();
 
 // Google Tasks Sync Configuration
 const GOOGLE_SYNC_INTERVAL = parseInt(process.env.GOOGLE_SYNC_INTERVAL) || 60; // seconds
@@ -1114,6 +1118,75 @@ app.get('/api/loxone/lights', async (req, res) => {
     res.json(lights);
   } catch (error) {
     console.error('Error fetching lights:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============= RECIPES API =============
+// Search recipes by name
+app.get('/api/recipes/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).json({ error: 'Search query (q) is required' });
+    }
+    
+    const recipes = await recipeService.searchByName(q);
+    res.json(recipes);
+  } catch (error) {
+    console.error('Recipe search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get recipe categories
+app.get('/api/recipes/categories', async (req, res) => {
+  try {
+    const categories = await recipeService.getCategories();
+    res.json(categories);
+  } catch (error) {
+    console.error('Categories fetch error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get random recipe
+app.get('/api/recipes/random', async (req, res) => {
+  try {
+    const recipe = await recipeService.getRandom();
+    if (!recipe) {
+      return res.status(404).json({ error: 'No recipe found' });
+    }
+    res.json(recipe);
+  } catch (error) {
+    console.error('Random recipe error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get recipes by category
+app.get('/api/recipes/category/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    const recipes = await recipeService.getByCategory(category);
+    res.json(recipes);
+  } catch (error) {
+    console.error('Category recipes error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get recipe by ID
+app.get('/api/recipes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const recipe = await recipeService.getById(id);
+    if (!recipe) {
+      return res.status(404).json({ error: 'Recipe not found' });
+    }
+    res.json(recipe);
+  } catch (error) {
+    console.error('Recipe fetch error:', error);
     res.status(500).json({ error: error.message });
   }
 });

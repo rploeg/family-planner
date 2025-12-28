@@ -36,10 +36,14 @@ export const CalendarProvider = ({ children }) => {
         return `${year}-${month}-${day}`;
       };
       
+      console.log('CalendarContext: Fetching events from', formatDate(startDate), 'to', formatDate(endDate));
+      
       const response = await api.getEvents(
         formatDate(startDate),
         formatDate(endDate)
       );
+      
+      console.log('CalendarContext: API response:', response);
       
       // Handle different response formats
       let eventsArray = [];
@@ -100,9 +104,12 @@ export const CalendarProvider = ({ children }) => {
           };
         });
         
+        console.log('CalendarContext: Transformed', transformedEvents.length, 'events');
+        console.log('CalendarContext: Sample event:', transformedEvents[0]);
+        
         setEvents(transformedEvents);
     } catch (err) {
-      console.error('Failed to load events:', err);
+      console.error('CalendarContext: Failed to load events:', err);
       setError(err.message);
       // Fall back to empty array on error
       setEvents([]);

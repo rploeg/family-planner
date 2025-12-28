@@ -173,6 +173,27 @@ class ApiService {
     return this.request('/api/loxone/lights');
   }
 
+  // ============= RECIPES API =============
+  async searchRecipes(query) {
+    return this.request(`/api/recipes/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async getRecipe(id) {
+    return this.request(`/api/recipes/${id}`);
+  }
+
+  async getRecipeCategories() {
+    return this.request('/api/recipes/categories');
+  }
+
+  async getRecipesByCategory(category) {
+    return this.request(`/api/recipes/category/${encodeURIComponent(category)}`);
+  }
+
+  async getRandomRecipe() {
+    return this.request('/api/recipes/random');
+  }
+
   // ============= HEALTH CHECK =============
   async healthCheck() {
     return this.request('/health');

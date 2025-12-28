@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLists } from '../context/ListsContext';
 import { useTranslation } from 'react-i18next';
+import RecipeModal from '../components/RecipeModal';
 import './ListsPage.css';
 
 const ListsPage = () => {
@@ -13,6 +14,7 @@ const ListsPage = () => {
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListIcon, setNewListIcon] = useState('📝');
+  const [showRecipeModal, setShowRecipeModal] = useState(false);
 
   const icons = ['🛒', '📝', '✓', '🏠', '🎯', '💡', '🎨', '🔧', '📚', '🎮', '⚽', '🍕'];
 
@@ -37,6 +39,30 @@ const ListsPage = () => {
       addItem(listId, newItemText, 'User', newItemCategory);
       setNewItemText('');
       setNewItemCategory('household');
+    }
+  };
+
+  const handleAddRecipeIngredients = async (ingredients, recipeName) => {
+    if (!currentList) {
+      console.error('No list selected');
+      alert('Selecteer eerst een lijst');
+      return;
+    }
+    
+    if (ingredients.length === 0) {
+      return;
+    }
+
+    try {
+      for (const ingredient of ingredients) {
+        // Handle both string ingredients and object ingredients
+        const text = typeof ingredient === 'string' ? ingredient : ingredient.displayText;
+        await addItem(currentList.id, text, `Recept: ${recipeName}`, 'household');
+      }
+      setShowRecipeModal(false);
+    } catch (error) {
+      console.error('Failed to add ingredients:', error);
+      alert('Er ging iets mis bij het toevoegen van ingrediënten');
     }
   };
 
@@ -77,9 +103,14 @@ const ListsPage = () => {
           <p className="page-subtitle">{t('lists.subtitle')}</p>
           <h2 className="page-title">{t('lists.title')}</h2>
         </div>
-        <button className="add-btn" onClick={() => setIsCreatingList(true)}>
-          ➕
-        </button>
+        <div className="header-buttons">
+          <button className="recipe-btn" onClick={() => setShowRecipeModal(true)} title="Zoek recept">
+            🍳
+          </button>
+          <button className="add-btn" onClick={() => setIsCreatingList(true)}>
+            ➕
+          </button>
+        </div>
       </div>
 
       <div className="lists-container">
@@ -293,6 +324,13 @@ const ListsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Recipe Search Modal */}
+      <RecipeModal
+        isOpen={showRecipeModal}
+        onClose={() => setShowRecipeModal(false)}
+        onAddIngredients={handleAddRecipeIngredients}
+      />
     </div>
   );
 };

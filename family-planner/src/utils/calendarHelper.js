@@ -2,6 +2,13 @@
  * Calendar Helper Utilities
  * Functions to detect upcoming events and provide context-aware suggestions
  */
+import api from '../services/api';
+
+// Cache for fetched recipes
+let cachedKidsMeals = null;
+let cachedSimpleMeals = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 1000 * 60 * 30; // 30 minutes
 
 /**
  * Find the next "Kinderen" event
@@ -90,6 +97,7 @@ export const getShoppingSuggestion = (daysUntil, kidsItemsCount) => {
  * @returns {Object|null} - Meal suggestion object
  */
 export const getMealSuggestion = (daysUntil, kidsPresent) => {
+  // Fallback hardcoded meals (used when API is not available or as initial data)
   const mealOptions = [
     {
       name: 'Pizza maken samen',
@@ -164,6 +172,10 @@ export const getMealSuggestion = (daysUntil, kidsPresent) => {
     }
   ];
   
+  // Use cached API meals if available, otherwise use fallback
+  const kidsMeals = cachedKidsMeals || mealOptions;
+  const soloMeals = cachedSimpleMeals || simpleMeals;
+  
   if (daysUntil === 1) {
     return {
       type: 'meal',
@@ -171,7 +183,7 @@ export const getMealSuggestion = (daysUntil, kidsPresent) => {
       icon: '🍽️',
       title: 'Kinderen komen morgen!',
       message: 'Plan een gezellige familie-maaltijd. Klik op een gerecht om ingrediënten toe te voegen.',
-      suggestions: mealOptions,
+      suggestions: kidsMeals,
       action: 'meals'
     };
   }
@@ -183,7 +195,7 @@ export const getMealSuggestion = (daysUntil, kidsPresent) => {
       icon: '👨‍👩‍👧‍👦',
       title: 'Kinderen zijn er!',
       message: 'Bereid een lekkere familie-maaltijd. Klik om ingrediënten toe te voegen.',
-      suggestions: mealOptions,
+      suggestions: kidsMeals,
       portions: 'family',
       action: 'meals'
     };
@@ -197,13 +209,84 @@ export const getMealSuggestion = (daysUntil, kidsPresent) => {
       icon: '🍽️',
       title: 'Alleen thuis',
       message: 'Simpele maaltijden: klik om ingrediënten toe te voegen.',
-      suggestions: simpleMeals,
+      suggestions: soloMeals,
       portions: 'single',
       action: 'meals'
     };
   }
   
   return null;
+};
+
+/**
+ * Fetch real recipes from TheMealDB API and cache them
+ * @returns {Promise<void>}
+ */
+export const fetchRealRecipes = async () => {
+  const now = Date.now();
+  
+  // Return if cache is still valid
+  if (cachedKidsMeals && cachedSimpleMeals && (now - lastFetchTime) < CACHE_DURATION) {
+    return;
+  }
+  
+  try {
+    // Fetch kid-friendly recipes (chicken, pasta, etc.)
+    const kidSearchTerms = ['chicken', 'pasta', 'pizza', 'burger', 'pancakes'];
+    const kidsMealsPromises = kidSearchTerms.map(term => 
+      api.searchRecipes(term).catch(() => [])
+    );
+    
+    const kidsMealsResults = await Promise.all(kidsMealsPromises);
+    const allKidsMeals = kidsMealsResults.flat();
+    
+    // Transform to the format SmartAlert expects
+    if (allKidsMeals.length > 0) {
+      cachedKidsMeals = allKidsMeals
+        .slice(0, 8) // Take top 8 recipes
+        .map(recipe => ({
+          name: recipe.name,
+          image: recipe.image,
+          ingredients: recipe.ingredients?.map(ing => ({
+            text: ing.displayText,
+            category: 'kids'
+          })) || []
+        }))
+        .filter(meal => meal.ingredients.length > 0);
+    }
+    
+    // Fetch simple meals (salad, soup, sandwich)
+    const simpleSearchTerms = ['salad', 'soup', 'omelette'];
+    const simpleMealsPromises = simpleSearchTerms.map(term => 
+      api.searchRecipes(term).catch(() => [])
+    );
+    
+    const simpleMealsResults = await Promise.all(simpleMealsPromises);
+    const allSimpleMeals = simpleMealsResults.flat();
+    
+    if (allSimpleMeals.length > 0) {
+      cachedSimpleMeals = allSimpleMeals
+        .slice(0, 5)
+        .map(recipe => ({
+          name: recipe.name,
+          image: recipe.image,
+          ingredients: recipe.ingredients?.map(ing => ({
+            text: ing.displayText,
+            category: 'household'
+          })) || []
+        }))
+        .filter(meal => meal.ingredients.length > 0);
+    }
+    
+    lastFetchTime = now;
+    console.log('calendarHelper: Fetched real recipes', {
+      kidsMeals: cachedKidsMeals?.length || 0,
+      simpleMeals: cachedSimpleMeals?.length || 0
+    });
+  } catch (error) {
+    console.error('calendarHelper: Failed to fetch recipes, using fallback', error);
+    // Keep using fallback meals
+  }
 };
 
 /**

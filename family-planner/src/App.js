@@ -13,7 +13,7 @@ import { CalendarProvider, useCalendar } from './context/CalendarContext';
 import { ListsProvider, useLists } from './context/ListsContext';
 import { MealsProvider } from './context/MealsContext';
 import { TimerProvider } from './context/TimerContext';
-import { getSmartSuggestions } from './utils/calendarHelper';
+import { getSmartSuggestions, fetchRealRecipes } from './utils/calendarHelper';
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState('briefing');
@@ -115,6 +115,15 @@ function AppContent() {
   useEffect(() => {
     refreshDismissedAlerts();
   }, [refreshDismissedAlerts]);
+
+  // Fetch real recipes from API on mount and update alerts
+  useEffect(() => {
+    const loadRecipesAndAlerts = async () => {
+      await fetchRealRecipes();
+      updateAlerts();
+    };
+    loadRecipesAndAlerts();
+  }, [updateAlerts]);
 
   // Update alerts when events or lists change
   useEffect(() => {
