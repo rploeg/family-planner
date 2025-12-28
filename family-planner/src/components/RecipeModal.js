@@ -13,6 +13,8 @@ const RecipeModal = ({ isOpen, onClose, onAddIngredients }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [view, setView] = useState('search'); // 'search', 'categories', 'recipe'
+  const [mealDate, setMealDate] = useState('');
+  const [mealType, setMealType] = useState('dinner');
 
   useEffect(() => {
     if (isOpen) {
@@ -92,7 +94,13 @@ const RecipeModal = ({ isOpen, onClose, onAddIngredients }) => {
 
   const handleAddToList = () => {
     if (selectedIngredients.length > 0) {
-      onAddIngredients(selectedIngredients, selectedRecipe?.name);
+      // Pass meal info if date is selected
+      const mealInfo = mealDate ? {
+        date: mealDate,
+        type: mealType,
+        title: selectedRecipe?.name
+      } : null;
+      onAddIngredients(selectedIngredients, selectedRecipe?.name, mealInfo);
       handleClose();
     }
   };
@@ -103,6 +111,8 @@ const RecipeModal = ({ isOpen, onClose, onAddIngredients }) => {
     setSelectedRecipe(null);
     setSelectedCategory(null);
     setSelectedIngredients([]);
+    setMealDate('');
+    setMealType('dinner');
     setView('search');
     onClose();
   };
@@ -263,12 +273,34 @@ const RecipeModal = ({ isOpen, onClose, onAddIngredients }) => {
 
         {view === 'recipe' && (
           <div className="recipe-modal-footer">
+            <div className="meal-planning-row">
+              <label className="meal-date-label">
+                📅 Wanneer eten we dit?
+              </label>
+              <input
+                type="date"
+                className="meal-date-input"
+                value={mealDate}
+                onChange={(e) => setMealDate(e.target.value)}
+              />
+              <select
+                className="meal-type-select"
+                value={mealType}
+                onChange={(e) => setMealType(e.target.value)}
+              >
+                <option value="breakfast">🍳 Ontbijt</option>
+                <option value="lunch">🥪 Lunch</option>
+                <option value="dinner">🍽️ Diner</option>
+                <option value="snack">🍪 Snack</option>
+              </select>
+            </div>
             <button 
               className="add-ingredients-btn"
               onClick={handleAddToList}
               disabled={selectedIngredients.length === 0}
             >
               ➕ {selectedIngredients.length} ingrediënt{selectedIngredients.length !== 1 ? 'en' : ''} toevoegen
+              {mealDate && ` + maaltijd plannen`}
             </button>
           </div>
         )}

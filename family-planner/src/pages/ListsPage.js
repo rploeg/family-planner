@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useLists } from '../context/ListsContext';
+import { useMeals } from '../context/MealsContext';
 import { useTranslation } from 'react-i18next';
 import RecipeModal from '../components/RecipeModal';
 import './ListsPage.css';
 
 const ListsPage = () => {
   const { lists, createList, deleteList, addItem, toggleItem, deleteItem, clearCompleted, updateItemCategory, updateItemDueDate } = useLists();
+  const { addMeal } = useMeals();
   const { t } = useTranslation();
   const [selectedList, setSelectedList] = useState(null);
   const [newItemText, setNewItemText] = useState('');
@@ -51,10 +53,13 @@ const ListsPage = () => {
     }
   };
 
-  const handleAddRecipeIngredients = async (ingredients, recipeName) => {
-    if (!currentList) {
-      console.error('No list selected');
-      alert('Selecteer eerst een lijst');
+  const handleAddRecipeIngredients = async (ingredients, recipeName, mealInfo) => {
+    // Find a grocery list to add ingredients to (not task list)
+    const groceryList = lists.find(l => l.type === 'grocery') || lists.find(l => l.type !== 'tasks');
+    
+    if (!groceryList) {
+      console.error('No grocery list found');
+      alert('Geen boodschappenlijst gevonden. Maak eerst een boodschappenlijst aan.');
       return;
     }
     
@@ -63,11 +68,30 @@ const ListsPage = () => {
     }
 
     try {
+      // Add ingredients to the grocery list (not task list!)
       for (const ingredient of ingredients) {
         // Handle both string ingredients and object ingredients
         const text = typeof ingredient === 'string' ? ingredient : ingredient.displayText;
-        await addItem(currentList.id, text, `Recept: ${recipeName}`, 'household');
+        await addItem(groceryList.id, text, `Recept: ${recipeName}`, 'household');
       }
+      }
+      
+      // If meal info is provided, add the meal to the meal plan
+      if (mealInfo && mealInfo.date) {
+        try {
+          const mealData = {
+            title: mealInfo.title || mealInfo.recipeName,
+            type: mealInfo.type || mealInfo.mealType || 'dinner',
+            notes: 'Toegevoegd via recept'
+          };
+          await addMeal(mealInfo.date, mealData);
+          console.log('Meal added successfully:', mealData);
+        } catch (mealError) {
+          console.error('Failed to add meal (ingredients were added):', mealError);
+          // Don't show error - ingredients were added successfully
+        }
+      }
+      
       setShowRecipeModal(false);
     } catch (error) {
       console.error('Failed to add ingredients:', error);

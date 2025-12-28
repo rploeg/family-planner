@@ -31,11 +31,12 @@ export const MealsProvider = ({ children }) => {
     }
   }, []);
 
-  // Initial load
+  // Initial load - load current month plus next month for week view
   useEffect(() => {
     const now = new Date();
     const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    // Load 2 months ahead to cover week navigation
+    const endDate = new Date(now.getFullYear(), now.getMonth() + 2, 0);
     
     loadMeals({
       startDate: startDate.toISOString().split('T')[0],
