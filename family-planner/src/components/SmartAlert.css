@@ -79,6 +79,18 @@
   }
 }
 
+/* Touch-friendly: use active states instead of hover on tablets */
+@media (hover: none) and (pointer: coarse) {
+  .smart-alert {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  
+  .smart-alert:active {
+    transform: scale(0.98);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+}
+
 .alert-header {
   display: flex;
   align-items: flex-start;

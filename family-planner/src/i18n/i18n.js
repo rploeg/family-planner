@@ -10,6 +10,7 @@ const resources = {
       "nav.family": "Family",
       "nav.lists": "Lists",
       "nav.briefing": "Briefing",
+      "nav.home": "Home",
       "nav.settings": "Settings",
       
       // Calendar
@@ -131,6 +132,7 @@ const resources = {
       "nav.family": "Familie",
       "nav.lists": "Lijsten",
       "nav.briefing": "Start",
+      "nav.home": "Huis",
       "nav.settings": "Instellingen",
       
       // Agenda

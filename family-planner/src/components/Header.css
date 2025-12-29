@@ -275,3 +275,56 @@
     font-size: 16px;
   }
 }
+
+/* ========================================
+   TABLET OPTIMIZATIONS
+   ======================================== */
+
+/* Safe area support for header (notch on iPads) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .app-header {
+    padding-top: calc(var(--spacing-md) + env(safe-area-inset-top));
+  }
+}
+
+/* Tablet-specific sizing */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app-header {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+  
+  .header-left,
+  .header-right {
+    min-width: 180px;
+    gap: var(--spacing-md);
+  }
+  
+  .logo {
+    font-size: 18px;
+  }
+}
+
+/* Touch-friendly buttons on tablets */
+@media (hover: none) and (pointer: coarse) {
+  .timer-icon-button,
+  .timer-button,
+  .shopping-basket-button,
+  .language-switcher-button,
+  .notifications-button {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .shopping-basket-button:hover {
+    background: rgba(139, 195, 74, 0.2);
+    transform: none;
+  }
+  
+  .shopping-basket-button:active {
+    background: rgba(139, 195, 74, 0.3);
+    transform: scale(0.95);
+  }
+}

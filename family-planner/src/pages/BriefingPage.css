@@ -453,6 +453,30 @@
   }
 }
 
+/* iPad Air landscape optimization (820px) */
+@media (min-width: 768px) and (max-width: 900px) {
+  .briefing-page {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px 16px 90px 16px;
+  }
+  
+  /* Show 2 days prominently, hint at 3rd */
+  .events-section {
+    min-height: 200px;
+  }
+  
+  /* Better spacing for 2-column layout */
+  .section-title {
+    font-size: 12px;
+  }
+  
+  .loxone-live-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* iPad portrait / smaller tablets */
 @media (max-width: 768px) {
   .briefing-page {
     grid-template-columns: 1fr;
@@ -682,7 +706,107 @@
   border-color: #8BC34A;
 }
 
-/* Loxone Live Data Section */
+/* Loxone Quick Summary Bar */
+.loxone-summary-section {
+  grid-column: 1 / -1;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.loxone-summary-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 195, 74, 0.15);
+}
+
+.loxone-summary-section:active {
+  transform: scale(0.99);
+}
+
+.loxone-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(139, 195, 74, 0.1) 0%, rgba(104, 159, 56, 0.05) 100%);
+  border: 1px solid rgba(139, 195, 74, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  gap: 16px;
+}
+
+.loxone-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loxone-summary-left .summary-icon {
+  font-size: 24px;
+}
+
+.loxone-summary-left .summary-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #8BC34A;
+}
+
+.loxone-summary-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.summary-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-stat-item .stat-icon {
+  font-size: 16px;
+}
+
+.summary-stat-item .stat-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.loxone-summary-arrow {
+  font-size: 24px;
+  color: #8BC34A;
+  font-weight: 300;
+}
+
+/* Touch-friendly */
+@media (hover: none) and (pointer: coarse) {
+  .loxone-summary-section:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .loxone-summary-section:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .loxone-summary-bar {
+    padding: 10px 14px;
+    gap: 12px;
+  }
+  
+  .loxone-summary-stats {
+    gap: 12px;
+  }
+  
+  .summary-stat-item .stat-value {
+    font-size: 13px;
+  }
+}
+
+/* Loxone Live Data Section (legacy - keeping for compatibility) */
 .loxone-live-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -945,4 +1069,70 @@
   .summary-stat {
     flex: 1;
     min-width: 70px;  }
+}
+
+/* ========================================
+   TABLET & TOUCH OPTIMIZATIONS
+   ======================================== */
+
+/* Touch-friendly interactions for tablets */
+@media (hover: none) and (pointer: coarse) {
+  /* Loxone cards - use active state instead of hover */
+  .loxone-live-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  
+  .loxone-live-card:hover {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .loxone-live-card:active {
+    background: rgba(0, 0, 0, 0.4);
+    transform: scale(0.97);
+    border-color: rgba(139, 195, 74, 0.3);
+  }
+  
+  /* Room cards - touch feedback */
+  .room-card:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #333;
+  }
+  
+  .room-card:active {
+    transform: scale(0.98);
+    border-color: #8BC34A;
+  }
+  
+  /* Meal cards - ensure touch targets */
+  .meal-slot {
+    min-height: 48px;
+  }
+  
+  /* Task items - touch friendly */
+  .event-card {
+    min-height: 52px;
+  }
+}
+
+/* Tablet landscape optimization (iPad Air/Pro) */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .briefing-page {
+    padding: 12px 20px 90px 20px;
+    gap: 12px;
+  }
+  
+  .loxone-live-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+}
+
+/* iPad Pro 12.9" landscape */
+@media (min-width: 1200px) and (max-width: 1400px) {
+  .briefing-page {
+    max-width: 1300px;
+    margin: 0 auto;
+  }
 }

@@ -56,3 +56,155 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-accent-green);
 }
+
+/* ========================================
+   TABLET & PWA OPTIMIZATIONS
+   ======================================== */
+
+/* Safe area support for notches (iPad Pro, etc.) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Touch-friendly: disable hover effects on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover transforms that feel janky on touch */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Ensure minimum touch target size (44px Apple guideline) */
+  button, 
+  .nav-item,
+  .clickable,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Smooth orientation change transitions */
+@media screen and (orientation: portrait) {
+  .main-content {
+    transition: padding 0.3s ease;
+  }
+}
+
+@media screen and (orientation: landscape) {
+  .main-content {
+    transition: padding 0.3s ease;
+  }
+}
+
+/* Prevent pull-to-refresh on PWA */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Better text selection on tablets */
+@media (pointer: coarse) {
+  p, span, h1, h2, h3, h4, h5, h6 {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+/* ========================================
+   ANDROID-SPECIFIC OPTIMIZATIONS
+   ======================================== */
+
+/* Android tablets: Samsung Galaxy Tab, Pixel Tablet, etc. */
+@media (pointer: coarse) {
+  /* Larger touch targets for Android (48dp Material Design guideline) */
+  button, 
+  .nav-item,
+  .clickable,
+  [role="button"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  
+  /* Material-like ripple effect simulation */
+  .nav-item,
+  .event-card,
+  .loxone-live-card,
+  .smart-alert,
+  .meal-slot {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* Smoother scrolling on Android Chrome */
+  * {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Samsung Galaxy Tab S series landscape (~1600-2560px) */
+@media (min-width: 1400px) and (pointer: coarse) {
+  .briefing-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px 24px 100px 24px;
+  }
+  
+  .loxone-live-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Samsung Galaxy Tab (800-1200px landscape) */
+@media (min-width: 800px) and (max-width: 1200px) and (pointer: coarse) {
+  .briefing-page {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 10px 16px 90px 16px;
+  }
+}
+
+/* Android foldables (Samsung Z Fold) */
+@media (min-width: 600px) and (max-width: 800px) and (pointer: coarse) {
+  .briefing-page {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
+/* Android system font stack */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+/* Chrome on Android: hide scrollbar but keep functionality */
+@supports (scrollbar-width: none) {
+  .main-content {
+    scrollbar-width: none;
+  }
+}
+
+/* Android edge-to-edge display support */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .bottom-nav {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Samsung DeX mode (desktop-like) - use mouse behaviors */
+@media (pointer: fine) and (min-width: 1200px) {
+  /* Re-enable hover effects for mouse/trackpad */
+  .event-card:hover {
+    background: #252525;
+    transform: translateY(-2px);
+  }
+  
+  .loxone-live-card:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(139, 195, 74, 0.3);
+  }
+}

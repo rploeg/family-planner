@@ -108,3 +108,40 @@
     font-size: 12px;
   }
 }
+
+/* Touch-friendly styles for tablets */
+@media (hover: none) and (pointer: coarse) {
+  .event-card {
+    /* Ensure minimum touch target height */
+    min-height: 56px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  
+  /* Replace hover with active state for touch */
+  .event-card:hover {
+    background: #1a1a1a;
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .event-card:active {
+    background: #252525;
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(139, 195, 74, 0.2);
+  }
+}
+
+/* Tablet-specific sizing */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .event-card {
+    padding: 14px 16px;
+  }
+  
+  .event-title {
+    font-size: 15px;
+  }
+  
+  .event-time {
+    font-size: 13px;
+  }
+}

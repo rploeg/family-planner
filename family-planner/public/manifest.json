@@ -18,9 +18,24 @@
   ],
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#4CAF50",
-  "background_color": "#ffffff",
-  "orientation": "portrait",
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "orientation": "any",
   "scope": "/",
-  "categories": ["productivity", "lifestyle"]
+  "categories": ["productivity", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Agenda",
+      "short_name": "Agenda",
+      "url": "/calendar",
+      "icons": [{ "src": "icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Lijsten",
+      "short_name": "Lijsten",
+      "url": "/lists",
+      "icons": [{ "src": "icon-192.svg", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
 }

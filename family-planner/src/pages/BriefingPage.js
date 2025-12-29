@@ -8,7 +8,7 @@ import EventCard from '../components/EventCard';
 import SmartAlert from '../components/SmartAlert';
 import './BriefingPage.css';
 
-const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
+const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) => {
   const { getTodayEvents, events } = useCalendar();
   const { getMealsForDate } = useMeals();
   const { t, i18n } = useTranslation();
@@ -154,20 +154,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
     return 'stable';
   };
 
-  // Get comfort level for temperature
-  const getTemperatureComfort = (temp) => {
-    if (temp < 19) return { level: 'cold', color: '#4FC3F7', icon: '🥶' };
-    if (temp > 22) return { level: 'warm', color: '#FF9800', icon: '🥵' };
-    return { level: 'comfortable', color: '#8BC34A', icon: '😊' };
-  };
-
-  // Get humidity status
-  const getHumidityStatus = (humidity) => {
-    if (humidity < 30) return { status: 'dry', color: '#FF9800', warning: true };
-    if (humidity > 60) return { status: 'humid', color: '#FF9800', warning: true };
-    return { status: 'good', color: '#8BC34A', warning: false };
-  };
-
   // Update prevEnergyData for trend calculation
   useEffect(() => {
     if (energyData) {
@@ -177,8 +163,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
       return () => clearTimeout(timer);
     }
   }, [energyData]);
-
-  const powerTrend = getPowerTrend();
 
   // Helper function to adjust event display for a specific day
   const adjustEventDisplayForDay = (event, targetDay) => {
@@ -557,81 +541,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [] }) => {
           </div>
         )}
       </section>
-
-      {/* Loxone Live Data Section */}
-      {loxoneAvailable && (energyData || sensorsData || lightsData) && (
-        <section className="briefing-section loxone-live-section">
-          <h3 className="section-title">
-            ⚡ {i18n.language === 'nl' ? 'Live Data' : 'Live Data'}
-          </h3>
-          <div className="loxone-live-grid">
-            {/* Energy Meter */}
-            {energyData && energyData.currentUsage !== null && (
-              <div className="loxone-live-card energy-card">
-                <div className="card-icon">⚡</div>
-                <div className="card-content">
-                  <div className="card-label">
-                    {i18n.language === 'nl' ? 'Huidig Verbruik' : 'Current Usage'}
-                    {powerTrend && <span className={`trend-indicator trend-${powerTrend}`}>{powerTrend === 'up' ? '↑' : powerTrend === 'down' ? '↓' : '→'}</span>}
-                  </div>
-                  <div className="card-value">{(energyData.currentUsage * 1000).toFixed(0)} W</div>
-                  <div className="card-sublabel">
-                    <span>P1 Meter</span>
-                    <span className="card-cost">≈ €{(energyData.currentUsage * 0.35).toFixed(2)}/h</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Temperature Sensor */}
-            {sensorsData && sensorsData.find(s => s.type === 'temperature') && (() => {
-              const tempSensor = sensorsData.find(s => s.type === 'temperature');
-              const comfort = getTemperatureComfort(tempSensor.value);
-              return (
-                <div className="loxone-live-card temp-card" style={{ borderColor: comfort.color }}>
-                  <div className="card-icon">{comfort.icon}</div>
-                  <div className="card-content">
-                    <div className="card-label">{i18n.language === 'nl' ? 'Temperatuur' : 'Temperature'}</div>
-                    <div className="card-value" style={{ color: comfort.color }}>{tempSensor.value.toFixed(1)}°C</div>
-                    <div className="card-sublabel">
-                      <span>{tempSensor.name}</span>
-                      <span className="comfort-badge" style={{ background: comfort.color }}>{comfort.level === 'cold' ? 'Koud' : comfort.level === 'warm' ? 'Warm' : 'OK'}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-            
-            {/* Humidity Sensor */}
-            {sensorsData && sensorsData.find(s => s.type === 'humidity') && (() => {
-              const humiditySensor = sensorsData.find(s => s.type === 'humidity');
-              const status = getHumidityStatus(humiditySensor.value);
-              return (
-                <div className="loxone-live-card humidity-card" style={{ borderColor: status.color }}>
-                  <div className="card-icon">💧</div>
-                  <div className="card-content">
-                    <div className="card-label">{i18n.language === 'nl' ? 'Luchtvochtigheid' : 'Humidity'}</div>
-                    <div className="card-value" style={{ color: status.color }}>{humiditySensor.value.toFixed(0)}%</div>
-                    <div className="card-sublabel">{humiditySensor.name}</div>
-                  </div>
-                </div>
-              );
-            })()}
-            
-            {/* Occupancy Status */}
-            {rooms && rooms.length > 0 && rooms[0].room && (
-              <div className="loxone-live-card occupancy-card">
-                <div className="card-icon">{rooms[0].occupied ? '👤' : '🚪'}</div>
-                <div className="card-content">
-                  <div className="card-label">{i18n.language === 'nl' ? 'Aanwezigheid' : 'Occupancy'}</div>
-                  <div className="card-value">{rooms[0].occupied ? 'Bezet' : 'Leeg'}</div>
-                  <div className="card-sublabel">{rooms[0].room}</div>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
     </div>
   );
 };

@@ -6,6 +6,7 @@ import FamilyPage from './pages/FamilyPage';
 import ListsPage from './pages/ListsPage';
 import BriefingPage from './pages/BriefingPage';
 import SettingsPage from './pages/SettingsPage';
+import LoxonePage from './pages/LoxonePage';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import { LoxoneProvider } from './context/LoxoneContext';
@@ -170,8 +171,10 @@ function AppContent() {
             allAlerts={allAlerts}
             dismissedAlertIds={dismissedAlertIds}
             onRestoreAlert={handleRestoreAlert}
+            onNavigate={setCurrentPage}
           />
         )}
+        {currentPage === 'home' && <LoxonePage />}
         {currentPage === 'calendar' && <CalendarPage />}
         {currentPage === 'family' && <FamilyPage />}
         {currentPage === 'lists' && <ListsPage />}
