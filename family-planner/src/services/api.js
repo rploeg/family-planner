@@ -145,6 +145,11 @@ class ApiService {
     return this.request(`/api/tasks/due${query ? `?${query}` : ''}`);
   }
 
+  // ============= WEATHER API =============
+  async getWeather(lang = 'en') {
+    return this.request(`/api/weather?lang=${lang}`);
+  }
+
   // ============= SETTINGS API =============
   async getSettings() {
     return this.request('/api/settings');

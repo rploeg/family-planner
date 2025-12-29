@@ -108,10 +108,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
     try {
       // Use backend weather API
       const lang = i18n.language === 'nl' ? 'nl' : 'en';
-      const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3002';
-      const response = await fetch(`${API_BASE_URL}/api/weather?lang=${lang}`);
-      if (!response.ok) throw new Error('Failed to fetch weather');
-      const data = await response.json();
+      const data = await api.getWeather(lang);
       
       // Map the backend weather data to the format expected by the UI
       setWeather({
