@@ -24,7 +24,8 @@
     "googleapis": "^169.0.0",
     "rrule": "^2.8.1",
     "sqlite3": "^5.1.7",
-    "tsdav": "^2.0.6"
+    "tsdav": "^2.0.6",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

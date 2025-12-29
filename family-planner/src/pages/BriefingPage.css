@@ -1165,6 +1165,7 @@
     padding: 8px 8px 100px 8px;
     max-width: 100%;
     margin: 0;
+    align-items: start;
   }
 
   .dashboard-main {
@@ -1174,14 +1175,17 @@
     min-width: 0;
   }
 
-  /* Date section - more compact */
+  /* Date section - more compact, align with sidebar */
   .dashboard-main .date-section {
     margin-bottom: 0;
-    padding: 8px 0;
+    padding: 0;
+    min-height: 0;
   }
 
   .dashboard-main .date-section .date-display {
     font-size: 18px;
+    margin: 0;
+    padding: 8px 12px;
   }
 
   /* Smart alerts more compact */
@@ -1231,6 +1235,7 @@
     max-height: calc(100vh - 170px);
     overflow: hidden;
     overflow-y: auto;
+    padding-top: 0;
   }
 
   .sidebar-section {
@@ -1238,6 +1243,10 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 12px;
+  }
+
+  .sidebar-section:first-child {
+    margin-top: 0;
   }
 
   .sidebar-title {

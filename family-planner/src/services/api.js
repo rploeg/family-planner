@@ -178,6 +178,20 @@ class ApiService {
     return this.request('/api/loxone/lights');
   }
 
+  async toggleLoxoneLight(uuid, on) {
+    return this.request(`/api/loxone/lights/${uuid}/toggle`, {
+      method: 'POST',
+      body: JSON.stringify({ on }),
+    });
+  }
+
+  async setLoxoneLightMood(uuid, mood) {
+    return this.request(`/api/loxone/lights/${uuid}/mood`, {
+      method: 'POST',
+      body: JSON.stringify({ mood }),
+    });
+  }
+
   // ============= RECIPES API =============
   async searchRecipes(query) {
     return this.request(`/api/recipes/search?q=${encodeURIComponent(query)}`);
@@ -202,6 +216,57 @@ class ApiService {
   // ============= HEALTH CHECK =============
   async healthCheck() {
     return this.request('/health');
+  }
+
+  // ============= WEBSOCKET FOR REAL-TIME UPDATES =============
+  connectWebSocket(callbacks = {}) {
+    const wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/ws';
+    
+    console.log('Connecting to WebSocket:', wsUrl);
+    
+    this.ws = new WebSocket(wsUrl);
+    this.wsCallbacks = callbacks;
+    
+    this.ws.onopen = () => {
+      console.log('WebSocket connected');
+      if (callbacks.onConnect) callbacks.onConnect();
+    };
+    
+    this.ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message:', data.type);
+        
+        if (data.type === 'loxone_state_update' && callbacks.onLoxoneUpdate) {
+          callbacks.onLoxoneUpdate(data.updates);
+        } else if (callbacks.onMessage) {
+          callbacks.onMessage(data);
+        }
+      } catch (e) {
+        console.error('WebSocket message parse error:', e);
+      }
+    };
+    
+    this.ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      if (callbacks.onDisconnect) callbacks.onDisconnect();
+      
+      // Reconnect after 5 seconds
+      setTimeout(() => this.connectWebSocket(callbacks), 5000);
+    };
+    
+    this.ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    return this.ws;
+  }
+  
+  disconnectWebSocket() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
   }
 }
 

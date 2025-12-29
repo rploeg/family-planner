@@ -1338,6 +1338,150 @@ app.get('/api/loxone/lights', async (req, res) => {
   }
 });
 
+// Toggle a light on/off
+app.post('/api/loxone/lights/:uuid/toggle', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const { uuid } = req.params;
+    const { on } = req.body;
+    
+    const result = await loxoneService.toggleLight(uuid, on);
+    
+    // Broadcast the change to all connected WebSocket clients
+    broadcast({
+      type: 'loxone_state_update',
+      updates: [{
+        type: 'light',
+        uuid: uuid,
+        isOn: on,
+        value: on ? 1 : 0
+      }]
+    });
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error toggling light:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set light mood
+app.post('/api/loxone/lights/:uuid/mood', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const { uuid } = req.params;
+    const { mood } = req.body;
+    
+    const result = await loxoneService.setLightMood(uuid, mood);
+    
+    // Broadcast the change
+    broadcast({
+      type: 'loxone_state_update',
+      updates: [{
+        type: 'light',
+        uuid: uuid,
+        value: mood,
+        isOn: mood > 0
+      }]
+    });
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error setting light mood:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug endpoint to explore all control types
+app.get('/api/loxone/debug/types', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const types = await loxoneService.getControlTypes();
+    res.json(types);
+  } catch (error) {
+    console.error('Error fetching control types:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug endpoint to get details of a specific control
+app.get('/api/loxone/debug/control/:uuid', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const details = await loxoneService.getControlDetails(req.params.uuid);
+    if (!details) {
+      return res.status(404).json({ error: 'Control not found' });
+    }
+    res.json(details);
+  } catch (error) {
+    console.error('Error fetching control details:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug endpoint to test raw Loxone queries
+app.get('/api/loxone/debug/query', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const path = req.query.path;
+    if (!path) {
+      return res.status(400).json({ error: 'path query parameter required' });
+    }
+    
+    const result = await loxoneService.debugQuery(path);
+    res.json(result);
+  } catch (error) {
+    console.error('Error with debug query:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug endpoint to check WebSocket state cache
+app.get('/api/loxone/debug/ws-state', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const stateCount = loxoneService.stateValues ? loxoneService.stateValues.size : 0;
+    const wsConnected = loxoneService.wsConnected || false;
+    
+    // Get sample of cached states
+    const samples = [];
+    if (loxoneService.stateValues) {
+      let count = 0;
+      for (const [uuid, value] of loxoneService.stateValues) {
+        samples.push({ uuid, value });
+        if (++count >= 20) break;
+      }
+    }
+    
+    res.json({
+      wsConnected,
+      stateCount,
+      samples
+    });
+  } catch (error) {
+    console.error('Error getting WS state:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============= RECIPES API =============
 // Search recipes by name
 app.get('/api/recipes/search', async (req, res) => {
@@ -1459,9 +1603,71 @@ app.get('/api/recipes/:id', async (req, res) => {
   }
 })();
 
-// Start Server
-app.listen(PORT, () => {
+// ============= WEBSOCKET SERVER FOR REAL-TIME UPDATES =============
+const http = require('http');
+const WebSocket = require('ws');
+
+// Create HTTP server from Express app
+const server = http.createServer(app);
+
+// Create WebSocket server
+const wss = new WebSocket.Server({ server, path: '/ws' });
+
+// Track connected clients
+const wsClients = new Set();
+
+wss.on('connection', (ws) => {
+  console.log('WebSocket client connected');
+  wsClients.add(ws);
+  
+  // Send initial connection confirmation
+  ws.send(JSON.stringify({ type: 'connected', message: 'Connected to Family Planner' }));
+  
+  ws.on('close', () => {
+    console.log('WebSocket client disconnected');
+    wsClients.delete(ws);
+  });
+  
+  ws.on('error', (error) => {
+    console.error('WebSocket client error:', error.message);
+    wsClients.delete(ws);
+  });
+});
+
+// Broadcast to all connected clients
+function broadcast(data) {
+  const message = JSON.stringify(data);
+  for (const client of wsClients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  }
+}
+
+// Register Loxone state update callback to broadcast changes
+if (loxoneService) {
+  loxoneService.onStateUpdate((updates) => {
+    if (wsClients.size > 0) {
+      broadcast({
+        type: 'loxone_state_update',
+        updates: updates
+      });
+    }
+  });
+  
+  // Start Loxone polling when service is initialized
+  // This polls the REST API and broadcasts changes via WebSocket
+  setTimeout(() => {
+    if (loxoneService.isInitialized) {
+      loxoneService.startPolling(5000); // Poll every 5 seconds
+    }
+  }, 3000);
+}
+
+// Start Server with WebSocket support
+server.listen(PORT, () => {
   console.log(`🚀 Family Planner Backend running on http://localhost:${PORT}`);
+  console.log(`   WebSocket: ws://localhost:${PORT}/ws`);
   console.log(`   Database: ${process.env.DATABASE_PATH || './data/family-planner.db'}`);
   console.log(`   CalDAV: ${process.env.CALDAV_SERVER_URL || 'not configured'}`);
   console.log(`   Google Calendar: ${googleCalendarService.isInitialized ? 'connected' : (GOOGLE_CALENDAR_ENABLED ? 'not authorized' : 'disabled')}`);
@@ -1474,6 +1680,7 @@ app.listen(PORT, () => {
 process.on('SIGINT', () => {
   console.log('\n⏹ Shutting down gracefully...');
   if (googleSyncTimer) clearInterval(googleSyncTimer);
+  if (loxoneService) loxoneService.stopPolling();
   db.close();
   process.exit(0);
 });

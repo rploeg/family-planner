@@ -1,5 +1,7 @@
 const https = require('https');
 const crypto = require('crypto');
+const WebSocket = require('ws');
+const axios = require('axios');
 
 class LoxoneService {
   constructor(config) {
@@ -8,25 +10,343 @@ class LoxoneService {
     this.password = config.password;
     this.isInitialized = false;
     this.token = null;
+    this.stateValues = new Map(); // Cache for real-time state values
+    this.ws = null;
+    this.wsConnected = false;
+    this.wsReconnectTimer = null;
+    this.keepAliveTimer = null;
+    this.structureFile = null; // Cache structure file
+    this.stateUpdateCallbacks = []; // Callbacks for state updates
     
     if (this.serverUrl && this.username && this.password) {
       this.initialize();
     }
   }
 
+  // Register a callback for state updates
+  onStateUpdate(callback) {
+    this.stateUpdateCallbacks.push(callback);
+  }
+
+  // Notify all callbacks of state updates
+  notifyStateUpdate(updates) {
+    for (const callback of this.stateUpdateCallbacks) {
+      try {
+        callback(updates);
+      } catch (error) {
+        console.error('State update callback error:', error.message);
+      }
+    }
+  }
+
   async initialize() {
+    // Prevent multiple initializations
+    if (this.isInitialized) {
+      return;
+    }
+    
     try {
       console.log('Initializing Loxone connection...');
       // Test connection by fetching structure file
       const structure = await this.getStructureFile();
       if (structure) {
+        this.structureFile = structure;
         this.isInitialized = true;
         console.log('✓ Loxone service ready');
+        // Connect WebSocket for real-time state updates
+        this.connectWebSocket();
       }
     } catch (error) {
       console.error('Failed to initialize Loxone:', error.message);
       this.isInitialized = false;
     }
+  }
+
+  // Connect to Loxone WebSocket for real-time state updates
+  connectWebSocket() {
+    try {
+      // Clear any existing timers
+      if (this.wsReconnectTimer) {
+        clearTimeout(this.wsReconnectTimer);
+        this.wsReconnectTimer = null;
+      }
+      if (this.keepAliveTimer) {
+        clearInterval(this.keepAliveTimer);
+        this.keepAliveTimer = null;
+      }
+      
+      const url = new URL(this.serverUrl);
+      // Use credentials in the WebSocket URL for authentication
+      const wsUrl = `wss://${encodeURIComponent(this.username)}:${encodeURIComponent(this.password)}@${url.hostname}:${url.port || 443}/ws/rfc6455`;
+      
+      console.log('Connecting to Loxone WebSocket...');
+      
+      this.ws = new WebSocket(wsUrl, {
+        rejectUnauthorized: false
+      });
+      
+      this.ws.on('open', () => {
+        console.log('✓ Loxone WebSocket connected');
+        this.wsConnected = true;
+        
+        // Try to enable binary status updates (may not work on all Miniserver versions)
+        // Use the full jdev path
+        this.ws.send('jdev/sps/enablebinstatusupdate');
+        
+        // Start keep-alive timer to prevent connection timeout
+        this.keepAliveTimer = setInterval(() => {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send('keepalive');
+          }
+        }, 60000);
+      });
+      
+      this.ws.on('message', (data) => {
+        this.handleWebSocketMessage(data);
+      });
+      
+      this.ws.on('close', (code, reason) => {
+        const reasonStr = reason ? reason.toString() : 'no reason';
+        console.log(`Loxone WebSocket disconnected (code: ${code}, reason: ${reasonStr})`);
+        this.wsConnected = false;
+        if (this.keepAliveTimer) {
+          clearInterval(this.keepAliveTimer);
+          this.keepAliveTimer = null;
+        }
+        // Reconnect after 5 seconds
+        this.wsReconnectTimer = setTimeout(() => this.connectWebSocket(), 5000);
+      });
+      
+      this.ws.on('error', (error) => {
+        console.error('Loxone WebSocket error:', error.message);
+        this.wsConnected = false;
+      });
+    } catch (error) {
+      console.error('Failed to connect WebSocket:', error.message);
+    }
+  }
+
+  // Handle incoming WebSocket messages
+  handleWebSocketMessage(data) {
+    try {
+      // Loxone sends both binary and text messages
+      if (Buffer.isBuffer(data)) {
+        // Binary message with Loxone header
+        // Header format (8 bytes):
+        //   Byte 0: Fixed 0x03
+        //   Byte 1: Message type identifier
+        //   Byte 2: Message info/flags  
+        //   Byte 3: Reserved (0x00)
+        //   Bytes 4-7: Payload length (little-endian uint32)
+        
+        if (data.length < 8) return;
+        
+        const headerByte = data[0];       // Should be 0x03
+        const msgType = data[1];          // Message type
+        const msgInfo = data[2];          // Info flags
+        const payloadLen = data.readUInt32LE(4);
+        
+        // Check if this looks like a JSON text message (starts with '{')
+        if (headerByte === 0x7b) {
+          // It's actually a text/JSON message
+          const text = data.toString('utf8');
+          this.handleTextMessage(text);
+          return;
+        }
+        
+        // Skip if not a valid Loxone header
+        if (headerByte !== 0x03) {
+          console.log(`WS: Unknown header byte 0x${headerByte.toString(16)}, length ${data.length}`);
+          return;
+        }
+        
+        const payload = data.slice(8);
+        
+        // Message types:
+        // 0 = Text message
+        // 1 = Binary file
+        // 2 = Value states (uuid + double)
+        // 3 = Text states
+        // 4 = DayTimer states
+        // 5 = Out of service
+        // 6 = Keep alive
+        // 7 = Weather states
+        
+        if (msgType === 0) {
+          // Text message (response to commands)
+          this.handleTextMessage(payload.toString('utf8'));
+        } else if (msgType === 2) {
+          // Value states update
+          this.parseValueStates(payload);
+        } else if (msgType === 3) {
+          // Text states update
+          this.parseTextStates(payload);
+        } else if (msgType === 6) {
+          // Keep-alive response - send back keepalive
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send('keepalive');
+          }
+        }
+      } else {
+        // Plain text message
+        const text = data.toString();
+        this.handleTextMessage(text);
+      }
+    } catch (error) {
+      console.error('WS message parse error:', error.message);
+    }
+  }
+
+  // Handle text/JSON messages from Loxone
+  handleTextMessage(text) {
+    try {
+      const msg = JSON.parse(text);
+      if (msg.LL) {
+        const code = msg.LL.Code || msg.LL.code;
+        const control = msg.LL.control || '';
+        
+        // Handle authentication flow
+        if (control.includes('authenticate') && !this.wsAuthenticated) {
+          if (code === '200' || code === 200) {
+            // Authentication step 1 successful - we got a challenge/key
+            const key = msg.LL.value?.key;
+            if (key) {
+              // Use HMAC-SHA1 authentication with the key
+              console.log('WS: Got auth key, computing response...');
+              const hmac = crypto.createHmac('sha1', key);
+              hmac.update(`${this.username}:${this.password}`);
+              const hash = hmac.digest('hex');
+              this.ws.send(`authenticate/${hash}`);
+            } else {
+              // Simple authentication (if value is just a token or success)
+              console.log('✓ WS authenticated (simple auth)');
+              this.wsAuthenticated = true;
+              this.onWsAuthenticated();
+            }
+          } else if (code === '401' || code === 401) {
+            console.error('WS authentication failed:', msg.LL.value);
+          }
+        } else if (control.includes('authenticateHash') || 
+                   (control.includes('authenticate') && this.wsAuthenticated === false && (code === '200' || code === 200))) {
+          // Second step of authentication completed
+          console.log('✓ WS authenticated');
+          this.wsAuthenticated = true;
+          this.onWsAuthenticated();
+        } else if (control === 'jdev/sps/enablebinstatusupdate' && (code === '200' || code === 200)) {
+          console.log('✓ Binary status updates enabled');
+        }
+      }
+    } catch (e) {
+      // Ignore non-JSON messages
+    }
+  }
+
+  // Called when WebSocket authentication is successful
+  onWsAuthenticated() {
+    // Request status updates (enable binary status updates)
+    this.ws.send('jdev/sps/enablebinstatusupdate');
+    
+    // Start keep-alive timer (send keepalive every 60 seconds to prevent timeout)
+    this.keepAliveTimer = setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send('keepalive');
+      }
+    }, 60000);
+  }
+
+  // Parse Loxone value state updates (message type 2)
+  parseValueStates(buffer) {
+    try {
+      // Value states format:
+      // Each entry is 24 bytes:
+      //   16 bytes: UUID (4 x uint32 little-endian)
+      //   8 bytes: Double value (little-endian)
+      
+      let offset = 0;
+      const updates = [];
+      
+      while (offset + 24 <= buffer.length) {
+        // Read UUID
+        const uuid = this.readUuidFromBuffer(buffer, offset);
+        offset += 16;
+        
+        // Read value
+        const value = buffer.readDoubleLE(offset);
+        offset += 8;
+        
+        // Check if value changed
+        const oldValue = this.stateValues.get(uuid);
+        if (oldValue !== value) {
+          updates.push({ uuid, value, oldValue });
+        }
+        
+        // Store in cache
+        this.stateValues.set(uuid, value);
+      }
+      
+      if (updates.length > 0) {
+        console.log(`WS: Updated ${updates.length} state values (total cached: ${this.stateValues.size})`);
+        // Notify callbacks of state changes
+        this.notifyStateUpdate(updates);
+      }
+    } catch (error) {
+      console.error('Value states parse error:', error.message);
+    }
+  }
+
+  // Parse Loxone text state updates (message type 3)
+  parseTextStates(buffer) {
+    try {
+      // Text states format:
+      // 16 bytes: UUID
+      // 4 bytes: Icon UUID (or 0)
+      // 4 bytes: Text length
+      // N bytes: Text (UTF-8)
+      
+      let offset = 0;
+      
+      while (offset + 24 <= buffer.length) {
+        const uuid = this.readUuidFromBuffer(buffer, offset);
+        offset += 16;
+        
+        // Skip icon UUID
+        offset += 4;
+        
+        // Read text length
+        const textLen = buffer.readUInt32LE(offset);
+        offset += 4;
+        
+        if (offset + textLen > buffer.length) break;
+        
+        const text = buffer.slice(offset, offset + textLen).toString('utf8');
+        offset += textLen;
+        
+        // Align to 4-byte boundary
+        const padding = (4 - (textLen % 4)) % 4;
+        offset += padding;
+        
+        // Store text value in cache
+        this.stateValues.set(uuid, text);
+      }
+    } catch (error) {
+      // Ignore parse errors
+    }
+  }
+
+  // Read UUID from buffer in Loxone format
+  readUuidFromBuffer(buffer, offset) {
+    const p1 = buffer.readUInt32LE(offset).toString(16).padStart(8, '0');
+    const p2 = buffer.readUInt32LE(offset + 4).toString(16).padStart(8, '0');
+    const p3 = buffer.readUInt32LE(offset + 8).toString(16).padStart(8, '0');
+    const p4 = buffer.readUInt32LE(offset + 12).toString(16).padStart(8, '0');
+    
+    // Reconstruct UUID in Loxone format: xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx
+    return `${p1.slice(0, 8)}-${p2.slice(0, 4)}-${p2.slice(4, 8)}-${p3}${p4}`;
+  }
+
+  // Get cached state value from WebSocket updates
+  getCachedStateValue(stateUuid) {
+    return this.stateValues.get(stateUuid) ?? null;
   }
 
   // Make authenticated request to Loxone Miniserver
@@ -90,8 +410,17 @@ class LoxoneService {
       // Build path - if stateName is empty, just use the control UUID
       const path = stateName ? `/jdev/sps/io/${controlUuid}/${stateName}` : `/jdev/sps/io/${controlUuid}`;
       const response = await this.makeRequest(path);
-      if (response && response.LL && response.LL.value !== undefined && response.LL.Code === '200') {
-        return parseFloat(response.LL.value);
+      if (response && response.LL && response.LL.value !== undefined) {
+        // Loxone can return Code as string "200" or number 200
+        const code = response.LL.Code || response.LL.code;
+        if (code === '200' || code === 200) {
+          const val = response.LL.value;
+          // Value might be a string like "hsv(0,0,0)" or a number
+          if (typeof val === 'string' && !isNaN(parseFloat(val))) {
+            return parseFloat(val);
+          }
+          return val;  // Return as-is for string values like "hsv(...)"
+        }
       }
       return null;
     } catch (error) {
@@ -259,21 +588,36 @@ class LoxoneService {
       
       for (const [uuid, control] of Object.entries(structure.controls)) {
         if (control.type === 'LightControllerV2') {
-          // Get active mood (0 = off, >0 = on)
-          const activeMood = await this.getStateValue(uuid, 'activeMoods');
-          
           // Get room name from structure
           const roomUuid = control.room;
           const roomName = structure.rooms && structure.rooms[roomUuid] 
             ? structure.rooms[roomUuid].name 
             : 'Unknown';
           
+          // Get activeMoods state UUID from the control structure
+          const activeMoodsStateUuid = control.states?.activeMoods;
+          
+          // Try WebSocket cached value first (real-time), fall back to REST API
+          let activeMood = null;
+          if (activeMoodsStateUuid) {
+            activeMood = this.getCachedStateValue(activeMoodsStateUuid);
+          }
+          
+          // If no cached value, try REST API (which may not return real state)
+          if (activeMood === null) {
+            activeMood = await this.getStateValue(uuid, 'activeMoods');
+          }
+          
+          const isOn = activeMood !== null && activeMood > 0;
+          
           lights.push({
             uuid: uuid,
             name: control.name,
             room: roomName,
-            isOn: activeMood > 0,
-            activeMood: activeMood || 0
+            isOn: isOn,
+            brightness: isOn ? 100 : 0,
+            activeMood: activeMood || 0,
+            wsConnected: this.wsConnected // Debug info
           });
         }
       }
@@ -282,6 +626,70 @@ class LoxoneService {
     } catch (error) {
       console.error('Failed to get lights:', error.message);
       return [];
+    }
+  }
+
+  // Toggle a light on/off
+  async toggleLight(uuid, on) {
+    try {
+      // For LightControllerV2, we use plus/minus to switch moods
+      // or we can use the changeTo command with a mood value
+      const command = on ? 'plus' : 'Off';
+      const url = `${this.serverUrl}/jdev/sps/io/${uuid}/${command}`;
+      const auth = Buffer.from(`${this.username}:${this.password}`).toString('base64');
+      
+      console.log(`[Loxone] Toggle light ${uuid} -> ${on ? 'ON' : 'OFF'}`);
+      
+      const response = await axios.get(url, {
+        timeout: 5000,
+        headers: {
+          'Authorization': `Basic ${auth}`
+        },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false })
+      });
+      
+      // Notify state change immediately (will be confirmed by next poll)
+      this.notifyStateUpdate(`light:${uuid}`, { on });
+      
+      return {
+        success: true,
+        command,
+        response: response.data
+      };
+    } catch (error) {
+      console.error(`[Loxone] Failed to toggle light ${uuid}:`, error.message);
+      throw error;
+    }
+  }
+
+  // Set a specific mood on a light controller
+  async setLightMood(uuid, mood) {
+    try {
+      // changeTo command sets a specific mood
+      const url = `${this.serverUrl}/jdev/sps/io/${uuid}/changeTo/${mood}`;
+      const auth = Buffer.from(`${this.username}:${this.password}`).toString('base64');
+      
+      console.log(`[Loxone] Set light ${uuid} mood -> ${mood}`);
+      
+      const response = await axios.get(url, {
+        timeout: 5000,
+        headers: {
+          'Authorization': `Basic ${auth}`
+        },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false })
+      });
+      
+      // Notify state change immediately
+      this.notifyStateUpdate(`light:${uuid}`, { mood });
+      
+      return {
+        success: true,
+        mood,
+        response: response.data
+      };
+    } catch (error) {
+      console.error(`[Loxone] Failed to set mood for light ${uuid}:`, error.message);
+      throw error;
     }
   }
 
@@ -366,6 +774,75 @@ class LoxoneService {
     }
   }
 
+  // Debug: Get all control types from structure
+  async getControlTypes() {
+    try {
+      const structure = await this.getStructureFile();
+      if (!structure || !structure.controls) {
+        return { error: 'No structure found' };
+      }
+
+      const types = {};
+      
+      for (const [uuid, control] of Object.entries(structure.controls)) {
+        const type = control.type || 'unknown';
+        if (!types[type]) {
+          types[type] = [];
+        }
+        
+        // Get room name
+        const roomUuid = control.room;
+        const roomName = structure.rooms && structure.rooms[roomUuid] 
+          ? structure.rooms[roomUuid].name 
+          : 'Unknown';
+        
+        types[type].push({
+          uuid: uuid,
+          name: control.name,
+          room: roomName,
+          states: control.states ? Object.keys(control.states) : [],
+          subControls: control.subControls ? Object.keys(control.subControls).length : 0
+        });
+      }
+      
+      return types;
+    } catch (error) {
+      console.error('Failed to get control types:', error.message);
+      return { error: error.message };
+    }
+  }
+
+  // Debug: Get detailed info about a specific control
+  async getControlDetails(uuid) {
+    try {
+      const structure = await this.getStructureFile();
+      if (!structure || !structure.controls || !structure.controls[uuid]) {
+        return null;
+      }
+
+      const control = structure.controls[uuid];
+      
+      // Get room name
+      const roomUuid = control.room;
+      const roomName = structure.rooms && structure.rooms[roomUuid] 
+        ? structure.rooms[roomUuid].name 
+        : 'Unknown';
+      
+      return {
+        uuid: uuid,
+        name: control.name,
+        type: control.type,
+        room: roomName,
+        states: control.states,
+        subControls: control.subControls,
+        details: control.details
+      };
+    } catch (error) {
+      console.error('Failed to get control details:', error.message);
+      return null;
+    }
+  }
+
   // Generate suggestions based on room data and calendar events
   generateSuggestions(rooms, upcomingEvents) {
     const suggestions = [];
@@ -431,6 +908,101 @@ class LoxoneService {
     }
 
     return suggestions;
+  }
+
+  // Poll for state changes and notify callbacks
+  // This is used when WebSocket binary updates are not available
+  async pollStates() {
+    if (!this.isInitialized) return;
+    
+    try {
+      // Get current light states
+      const lights = await this.getLights();
+      const sensors = await this.getInfoSensors();
+      
+      // Check for changes and notify
+      const updates = [];
+      
+      for (const light of lights) {
+        const stateKey = `light:${light.uuid}`;
+        const oldValue = this.stateValues.get(stateKey);
+        const newValue = light.activeMood;
+        
+        if (oldValue !== newValue) {
+          updates.push({
+            type: 'light',
+            uuid: light.uuid,
+            name: light.name,
+            room: light.room,
+            oldValue,
+            value: newValue,
+            isOn: light.isOn
+          });
+          this.stateValues.set(stateKey, newValue);
+        }
+      }
+      
+      for (const sensor of sensors) {
+        const stateKey = `sensor:${sensor.uuid}`;
+        const oldValue = this.stateValues.get(stateKey);
+        const newValue = sensor.value;
+        
+        // Only notify if value changed significantly (for analog sensors)
+        if (oldValue !== undefined && Math.abs(oldValue - newValue) > 0.1) {
+          updates.push({
+            type: 'sensor',
+            uuid: sensor.uuid,
+            name: sensor.name,
+            room: sensor.room,
+            sensorType: sensor.type,
+            oldValue,
+            value: newValue
+          });
+        }
+        this.stateValues.set(stateKey, newValue);
+      }
+      
+      if (updates.length > 0) {
+        console.log(`Loxone: ${updates.length} state changes detected`);
+        this.notifyStateUpdate(updates);
+      }
+      
+      return updates;
+    } catch (error) {
+      console.error('Poll states error:', error.message);
+      return [];
+    }
+  }
+
+  // Start polling for state changes
+  startPolling(intervalMs = 5000) {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+    }
+    
+    console.log(`Starting Loxone state polling (every ${intervalMs / 1000}s)`);
+    this.pollingTimer = setInterval(() => this.pollStates(), intervalMs);
+    
+    // Initial poll
+    this.pollStates();
+  }
+
+  // Stop polling
+  stopPolling() {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+    }
+  }
+
+  // Debug method to test raw queries to Loxone
+  async debugQuery(path) {
+    try {
+      const response = await this.makeRequest(path);
+      return response;
+    } catch (error) {
+      return { error: error.message };
+    }
   }
 }
 

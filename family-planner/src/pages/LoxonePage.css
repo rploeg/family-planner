@@ -1,7 +1,13 @@
+/* Loxone Page - Official App Styling */
 .loxone-page {
   padding: 10px 15px 100px 15px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  min-height: 100vh;
+}
+
+.loxone-page.loxone-dark {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
 }
 
 /* Loading State */
@@ -10,14 +16,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50vh;
+  min-height: 60vh;
   gap: 16px;
+  color: #888;
 }
 
-.loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(139, 195, 74, 0.2);
+.loxone-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(139, 195, 74, 0.2);
   border-top-color: #8BC34A;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -33,7 +40,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50vh;
+  min-height: 60vh;
   gap: 16px;
   text-align: center;
   padding: 40px;
@@ -46,90 +53,445 @@
 
 .loxone-unavailable h2 {
   color: #fff;
-  font-size: 24px;
+  font-size: 20px;
   margin: 0;
 }
 
 .loxone-unavailable p {
-  color: #888;
+  color: #666;
   font-size: 14px;
   margin: 0;
 }
 
-.retry-button {
+.retry-btn {
   background: #8BC34A;
   color: #000;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 12px 28px;
+  border-radius: 25px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.retry-button:hover {
+.retry-btn:hover {
   background: #7CB342;
-  transform: translateY(-1px);
+  transform: scale(1.02);
 }
 
-/* Tab Navigation */
-.loxone-tabs {
+/* View Toggle */
+.loxone-view-toggle {
   display: flex;
   gap: 8px;
-  padding: 8px 0;
-  margin-bottom: 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  width: fit-content;
 }
 
-.loxone-tabs::-webkit-scrollbar {
+.view-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.view-btn.active {
+  background: #8BC34A;
+  color: #000;
+}
+
+.view-icon {
+  font-size: 18px;
+}
+
+/* Rooms View */
+.loxone-rooms-view {
+  padding: 0;
+}
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* Room Card - Loxone Style */
+.room-card {
+  background: linear-gradient(145deg, #252525 0%, #1a1a1a 100%);
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.room-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.room-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.room-status.occupied {
+  font-size: 18px;
+}
+
+/* Control Rows */
+.room-controls {
+  padding: 8px 0;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.2s;
+}
+
+.control-row:last-child {
+  border-bottom: none;
+}
+
+.control-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.control-icon {
+  font-size: 22px;
+  width: 32px;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.control-icon.light-icon.on {
+  filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.6));
+}
+
+.control-icon.light-icon.off {
+  opacity: 0.4;
+}
+
+.control-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.control-label {
+  font-size: 14px;
+  color: #ccc;
+  font-weight: 500;
+}
+
+.control-sublabel {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Temperature Display */
+.temp-control .control-info {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.temp-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #69c0ff;
+}
+
+.humidity-value {
+  font-size: 14px;
+  color: #888;
+}
+
+/* Comfort Badge */
+.control-status {
+  display: flex;
+  align-items: center;
+}
+
+.comfort-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Control Actions */
+.control-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 300;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-btn:hover {
+  background: rgba(139, 195, 74, 0.3);
+  border-color: #8BC34A;
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+/* Toggle Switch */
+.control-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-switch {
+  width: 48px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.toggle-switch.on {
+  background: #8BC34A;
+}
+
+.toggle-knob {
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch.on .toggle-knob {
+  transform: translateX(20px);
+}
+
+/* Energy View */
+.loxone-energy-view {
+  padding: 0;
+}
+
+/* Energy Tabs */
+.energy-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.energy-tabs::-webkit-scrollbar {
   display: none;
 }
 
-.loxone-tab {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.energy-tab {
+  flex: 1;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
   color: #888;
-  padding: 10px 16px;
-  border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  white-space: nowrap;
   transition: all 0.2s;
-  min-height: 44px;
+  white-space: nowrap;
 }
 
-.loxone-tab:hover {
-  background: rgba(139, 195, 74, 0.1);
-  border-color: rgba(139, 195, 74, 0.3);
-  color: #8BC34A;
+.energy-tab:hover {
+  color: #fff;
 }
 
-.loxone-tab.active {
-  background: rgba(139, 195, 74, 0.2);
-  border-color: #8BC34A;
-  color: #8BC34A;
+.energy-tab.active {
+  background: #8BC34A;
+  color: #000;
 }
 
-/* Content Area */
-.loxone-content {
+/* Energy Content */
+.energy-content {
   display: flex;
   flex-direction: column;
+  gap: 24px;
+}
+
+/* Donut Chart */
+.energy-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 20px;
 }
 
-/* Section */
-.loxone-section {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.energy-donut {
+  position: relative;
+  width: 200px;
+  height: 200px;
 }
 
-.loxone-section .section-title {
+.donut-chart {
+  width: 100%;
+  height: 100%;
+}
+
+.donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.power-value {
+  font-size: 42px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.power-unit {
+  font-size: 18px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* Energy Legend */
+.energy-legend {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend-item.consumption .legend-dot {
+  background: #ff7875;
+}
+
+.legend-item.delivery .legend-dot {
+  background: #52c41a;
+}
+
+.legend-label {
+  font-size: 13px;
+  color: #888;
+}
+
+/* Energy Stats Grid */
+.energy-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.energy-stat-card {
+  background: linear-gradient(145deg, #252525 0%, #1a1a1a 100%);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.energy-stat-card .stat-label {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.energy-stat-card .stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Cost Section */
+.energy-cost {
+  background: linear-gradient(145deg, #252525 0%, #1a1a1a 100%);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.energy-cost h4 {
   font-size: 14px;
   font-weight: 600;
   color: #8BC34A;
@@ -138,335 +500,43 @@
   letter-spacing: 0.5px;
 }
 
-/* Quick Stats Grid */
-.quick-stats-grid {
+.cost-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
-.stat-card {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-left: 3px solid #8BC34A;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.stat-card.energy {
-  border-left-color: #FFC107;
-}
-
-.stat-card.temperature {
-  border-left-color: #00BCD4;
-}
-
-.stat-card.humidity {
-  border-left-color: #4CAF50;
-}
-
-.stat-card.occupancy {
-  border-left-color: #FF9800;
-}
-
-.stat-icon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-size: 11px;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.stat-trend {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.stat-trend.trend-up {
-  color: #FF5252;
-}
-
-.stat-trend.trend-down {
-  color: #8BC34A;
-}
-
-.stat-trend.trend-stable {
-  color: #888;
-}
-
-/* Lights Grid */
-.lights-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-}
-
-.light-card {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.2s;
-}
-
-.light-card.light-on {
-  background: rgba(255, 193, 7, 0.15);
-  border-color: rgba(255, 193, 7, 0.3);
-}
-
-.light-card.light-off {
-  opacity: 0.6;
-}
-
-.light-icon {
-  font-size: 24px;
-}
-
-.light-name {
-  font-size: 11px;
-  color: #ccc;
+.cost-item {
   text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
 }
 
-.light-brightness {
-  font-size: 10px;
-  color: #FFC107;
-  font-weight: 600;
-}
-
-/* Climate Grid */
-.climate-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-}
-
-.climate-card {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.climate-room {
-  font-size: 12px;
-  color: #888;
-  margin-bottom: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.climate-temp {
-  font-size: 28px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 8px;
-}
-
-.climate-status {
-  font-size: 10px;
-  padding: 4px 10px;
-  border-radius: 10px;
-  color: #fff;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: inline-block;
-}
-
-/* Energy Dashboard */
-.energy-dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.energy-main-card {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 152, 0, 0.1) 100%);
-  border: 1px solid rgba(255, 193, 7, 0.3);
-  border-radius: 16px;
-  padding: 24px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.energy-main-icon {
-  font-size: 48px;
-}
-
-.energy-main-value {
-  font-size: 48px;
-  font-weight: 700;
-  color: #FFC107;
-}
-
-.energy-unit {
-  font-size: 24px;
-  color: #888;
-  margin-left: 4px;
-}
-
-.energy-main-label {
-  font-size: 14px;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.energy-trend {
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 8px;
-}
-
-.energy-trend.trend-up {
-  color: #FF5252;
-}
-
-.energy-trend.trend-down {
-  color: #8BC34A;
-}
-
-.energy-trend.trend-stable {
-  color: #888;
-}
-
-.energy-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-}
-
-.energy-stat {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-  padding: 16px;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.energy-stat-label {
-  font-size: 11px;
-  color: #888;
+.cost-label {
   display: block;
-  margin-bottom: 6px;
-  text-transform: uppercase;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
 }
 
-.energy-stat-value {
+.cost-value {
   font-size: 20px;
-  font-weight: 700;
-  color: #fff;
-}
-
-/* Rooms Grid */
-.rooms-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.room-card {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.2s;
-}
-
-.room-card.occupied {
-  border-color: rgba(255, 152, 0, 0.4);
-  background: rgba(255, 152, 0, 0.1);
-}
-
-.room-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.room-name {
-  font-size: 14px;
   font-weight: 600;
   color: #fff;
-}
-
-.room-status {
-  font-size: 9px;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.room-status.status-occupied {
-  background: rgba(255, 152, 0, 0.2);
-  color: #FF9800;
-}
-
-.room-status.status-empty {
-  background: rgba(139, 195, 74, 0.2);
-  color: #8BC34A;
-}
-
-.room-detail {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #aaa;
-  margin-top: 6px;
 }
 
 /* Footer */
 .loxone-footer {
+  position: fixed;
+  bottom: 70px;
+  left: 0;
+  right: 0;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 16px;
+  padding: 12px;
+  background: rgba(26, 26, 26, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .last-updated {
@@ -474,105 +544,61 @@
   color: #666;
 }
 
-.refresh-button {
-  background: rgba(139, 195, 74, 0.15);
-  border: 1px solid rgba(139, 195, 74, 0.3);
-  color: #8BC34A;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
+.refresh-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 44px;
 }
 
-.refresh-button:hover {
-  background: rgba(139, 195, 74, 0.25);
+.refresh-btn:hover {
+  background: rgba(139, 195, 74, 0.3);
+  transform: rotate(180deg);
 }
 
-/* Touch-friendly active states */
-@media (hover: none) and (pointer: coarse) {
-  .stat-card:hover {
-    transform: none;
-    box-shadow: none;
-  }
-  
-  .stat-card:active {
-    transform: scale(0.98);
-  }
-  
-  .loxone-tab:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #888;
-  }
-  
-  .loxone-tab:active {
-    background: rgba(139, 195, 74, 0.1);
-  }
-  
-  .loxone-tab.active:hover {
-    background: rgba(139, 195, 74, 0.2);
-    border-color: #8BC34A;
-    color: #8BC34A;
-  }
-  
-  .retry-button:hover {
-    transform: none;
-  }
-  
-  .retry-button:active {
-    transform: scale(0.98);
-  }
-}
-
-/* Tablet optimizations */
-@media (min-width: 768px) and (max-width: 1024px) {
-  .loxone-page {
-    padding: 15px 20px 100px 20px;
-  }
-  
-  .quick-stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  
-  .climate-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  
+/* Responsive adjustments */
+@media (max-width: 768px) {
   .rooms-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .cost-grid {
     grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* Mobile */
-@media (max-width: 480px) {
-  .loxone-page {
-    padding: 10px 12px 100px 12px;
+    gap: 8px;
   }
   
-  .loxone-tabs {
-    margin: 0 -12px 16px -12px;
-    padding: 8px 12px;
+  .cost-value {
+    font-size: 16px;
   }
   
-  .quick-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .stat-card {
-    padding: 12px;
-  }
-  
-  .stat-value {
-    font-size: 18px;
-  }
-  
-  .energy-main-value {
+  .power-value {
     font-size: 36px;
   }
   
-  .climate-temp {
-    font-size: 24px;
+  .energy-donut {
+    width: 160px;
+    height: 160px;
+  }
+}
+
+/* iPad Pro and larger screens */
+@media (min-width: 1024px) {
+  .rooms-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .loxone-energy-view {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+@media (min-width: 1400px) {
+  .rooms-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
