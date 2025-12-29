@@ -6,9 +6,9 @@
 
 class WeatherService {
   constructor() {
-    // Default location: Netherlands (Amsterdam coordinates)
-    this.defaultLat = 52.3676;
-    this.defaultLon = 4.9041;
+    // Default location: Zeist, Netherlands
+    this.defaultLat = 52.0907;
+    this.defaultLon = 5.2334;
     this.apiBase = 'https://api.open-meteo.com/v1';
   }
 

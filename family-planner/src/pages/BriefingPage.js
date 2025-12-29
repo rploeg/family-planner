@@ -106,8 +106,24 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
 
   const loadWeather = async () => {
     try {
-      const data = await weatherService.getWeather();
-      setWeather(data);
+      // Use backend weather API
+      const lang = i18n.language === 'nl' ? 'nl' : 'en';
+      const response = await fetch(`http://localhost:3002/api/weather?lang=${lang}`);
+      if (!response.ok) throw new Error('Failed to fetch weather');
+      const data = await response.json();
+      
+      // Map the backend weather data to the format expected by the UI
+      setWeather({
+        temperature: data.current.temperature,
+        feelsLike: data.current.feelsLike,
+        humidity: data.current.humidity,
+        windSpeed: data.current.windSpeed,
+        precipitation: data.hourly[0]?.precipitationProbability || 0,
+        description: data.current.condition,
+        icon: data.current.icon,
+        hourly: data.hourly,
+        daily: data.daily
+      });
     } catch (error) {
       console.error('Failed to load weather:', error);
     }
@@ -242,6 +258,20 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
     }).map(event => adjustEventDisplayForDay(event, dayAfter));
   };
 
+  const getDay3Events = () => {
+    const day3 = new Date();
+    day3.setDate(day3.getDate() + 3);
+    day3.setHours(0, 0, 0, 0);
+    const day3End = new Date(day3);
+    day3End.setHours(23, 59, 59, 999);
+    
+    return events.filter(event => {
+      const eventStart = new Date(event.startDate);
+      const eventEnd = new Date(event.endDate);
+      return eventStart <= day3End && eventEnd >= day3;
+    }).map(event => adjustEventDisplayForDay(event, day3));
+  };
+
   const getTodayDateString = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -259,6 +289,12 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
     return `${dayAfter.getFullYear()}-${String(dayAfter.getMonth() + 1).padStart(2, '0')}-${String(dayAfter.getDate()).padStart(2, '0')}`;
   };
 
+  const getDay3DateString = () => {
+    const day3 = new Date();
+    day3.setDate(day3.getDate() + 3);
+    return `${day3.getFullYear()}-${String(day3.getMonth() + 1).padStart(2, '0')}-${String(day3.getDate()).padStart(2, '0')}`;
+  };
+
   const getDayAfterTomorrowLabel = () => {
     const dayAfter = new Date();
     dayAfter.setDate(dayAfter.getDate() + 2);
@@ -269,11 +305,23 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
     });
   };
 
+  const getDay3Label = () => {
+    const day3 = new Date();
+    day3.setDate(day3.getDate() + 3);
+    return day3.toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : 'en-US', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
+    });
+  };
+
   const tomorrowEvents = getTomorrowEvents();
   const dayAfterTomorrowEvents = getDayAfterTomorrowEvents();
+  const day3Events = getDay3Events();
   const todayMeals = getMealsForDate(getTodayDateString());
   const tomorrowMeals = getMealsForDate(getTomorrowDateString());
   const dayAfterTomorrowMeals = getMealsForDate(getDayAfterTomorrowDateString());
+  const day3Meals = getMealsForDate(getDay3DateString());
 
   // Filter tasks by date
   const getTasksForDate = (dateString) => {
@@ -286,6 +334,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
   const todayTasks = getTasksForDate(getTodayDateString());
   const tomorrowTasks = getTasksForDate(getTomorrowDateString());
   const dayAfterTomorrowTasks = getTasksForDate(getDayAfterTomorrowDateString());
+  const day3Tasks = getTasksForDate(getDay3DateString());
 
   const getMealIcon = (type) => {
     const icons = {
@@ -322,225 +371,323 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
 
   return (
     <div className="briefing-page">
-      {/* Date Display */}
-      <section className="briefing-section date-section">
-        <p className="date-display">
-          {new Date().toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : 'en-US', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          })}
-        </p>
-      </section>
-
-      {/* Smart Alerts */}
-      {smartAlerts.length > 0 && (
-        <section className="briefing-section smart-alerts-section">
-          {smartAlerts.map((alert, index) => (
-            <SmartAlert 
-              key={`${alert.type}-${alert.title}-${index}`}
-              suggestion={alert}
-              onDismiss={() => handleDismissAlert(alert)}
-            />
-          ))}
+      {/* Main Content Area - comes first in DOM, but flex order puts sidebar on right */}
+      <div className="dashboard-main">
+        {/* Date Display */}
+        <section className="briefing-section date-section">
+          <p className="date-display">
+            {new Date().toLocaleDateString(i18n.language === 'nl' ? 'nl-NL' : 'en-US', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            })}
+          </p>
         </section>
-      )}
 
-      {/* Weather Warning for Outdoor Events
-      <section className="briefing-section summary-section">
-        <div className="summary-card">
-          <div className="summary-greeting">
-            <span className="summary-greeting-text">
-              {(() => {
-                const hour = new Date().getHours();
-                if (hour < 12) return i18n.language === 'nl' ? 'Goedemorgen' : 'Good Morning';
-                if (hour < 18) return i18n.language === 'nl' ? 'Goedemiddag' : 'Good Afternoon';
-                return i18n.language === 'nl' ? 'Goedenavond' : 'Good Evening';
-              })()}
-            </span>
-          </div>
-          <div className="summary-stats">
-            <div className="summary-stat">
-              <span className="stat-icon">📅</span>
-              <span className="stat-value">{todayEvents.length}</span>
-              <span className="stat-label">{i18n.language === 'nl' ? 'Events' : 'Events'}</span>
+        {/* Smart Alerts */}
+        {smartAlerts.length > 0 && (
+          <section className="briefing-section smart-alerts-section">
+            {smartAlerts.map((alert, index) => (
+              <SmartAlert 
+                key={`${alert.type}-${alert.title}-${index}`}
+                suggestion={alert}
+                onDismiss={() => handleDismissAlert(alert)}
+              />
+            ))}
+          </section>
+        )}
+
+        {/* Weather Warning for Outdoor Events */}
+        {showWeatherWarning && (
+          <section className="briefing-section warning-section">
+            <div className="warning-card">
+              <div className="warning-header">
+                <span className="warning-icon">⚠️</span>
+                <h3>{t('briefing.outdoorAlert')}</h3>
+              </div>
+              <p>{t('briefing.weatherWarning')}</p>
+              <div className="affected-events">
+                {outdoorEvents.map(event => (
+                  <div key={event.id} className="warning-event">
+                    <span>{event.time}</span>
+                    <span>{event.title}</span>
+                    <span className="event-location">📍 {event.location}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="warning-reason">
+                {weatherService.isOutdoorFriendly(weather).reason}
+              </p>
             </div>
+          </section>
+        )}
+
+        {/* Three Day Columns - Today, Tomorrow, Day After */}
+        <div className="days-container">
+          {/* Today's Events Section */}
+          <section className="briefing-section events-section">
+            <h3 className="section-title">
+              {t('briefing.todaysEvents')} ({todayEvents.length + todayTasks.length})
+            </h3>
+            
+            {/* Today's Meals */}
+            {todayMeals.length > 0 && (
+              <div className="meals-preview">
+                {todayMeals.map(meal => (
+                  <div key={meal.id} className="meal-preview-item">
+                    <span className="meal-preview-icon">{getMealIcon(meal.type)}</span>
+                    <span className="meal-preview-title">{meal.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Today's Tasks */}
             {todayTasks.length > 0 && (
-              <div className="summary-stat">
-                <span className="stat-icon">✓</span>
-                <span className="stat-value">{todayTasks.length}</span>
-                <span className="stat-label">{i18n.language === 'nl' ? 'Taken' : 'Tasks'}</span>
+              <div className="tasks-preview">
+                {todayTasks.map(task => (
+                  <div key={task.id} className="task-preview-item">
+                    <span className="task-preview-icon">✓</span>
+                    <span className="task-preview-title">{task.text}</span>
+                    <span className="task-preview-list">{task.listName}</span>
+                  </div>
+                ))}
               </div>
             )}
-            {energyData && (
-              <div className="summary-stat">
-                <span className="stat-icon">⚡</span>
-                <span className="stat-value">{(energyData.currentUsage * 1000).toFixed(0)}W</span>
-                <span className="stat-label">Power</span>
+            
+            {todayEvents.length === 0 && todayTasks.length === 0 ? (
+              <p className="empty-message">{t('calendar.noEvents')}</p>
+            ) : (
+              <div className="briefing-events">
+                {todayEvents.map(event => (
+                  <EventCard key={event.id} event={event} onClick={() => {}} />
+                ))}
               </div>
             )}
-            {sensorsData && sensorsData.find(s => s.type === 'temperature') && (
-              <div className="summary-stat">
-                <span className="stat-icon">🌡️</span>
-                <span className="stat-value">{sensorsData.find(s => s.type === 'temperature').value.toFixed(1)}°</span>
-                <span className="stat-label">Temp</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {/* Weather Warning for Outdoor Events */}
-      {showWeatherWarning && (
-        <section className="briefing-section warning-section">
-          <div className="warning-card">
-            <div className="warning-header">
-              <span className="warning-icon">⚠️</span>
-              <h3>{t('briefing.outdoorAlert')}</h3>
+          {/* Tomorrow's Events Section */}
+          <section className="briefing-section events-section">
+            <h3 className="section-title">
+              {i18n.language === 'nl' ? 'Morgen' : 'Tomorrow'} ({tomorrowEvents.length + tomorrowTasks.length})
+            </h3>
+            
+            {/* Tomorrow's Meals */}
+            {tomorrowMeals.length > 0 && (
+              <div className="meals-preview">
+                {tomorrowMeals.map(meal => (
+                  <div key={meal.id} className="meal-preview-item">
+                    <span className="meal-preview-icon">{getMealIcon(meal.type)}</span>
+                    <span className="meal-preview-title">{meal.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Tomorrow's Tasks */}
+            {tomorrowTasks.length > 0 && (
+              <div className="tasks-preview">
+                {tomorrowTasks.map(task => (
+                  <div key={task.id} className="task-preview-item">
+                    <span className="task-preview-icon">✓</span>
+                    <span className="task-preview-title">{task.text}</span>
+                    <span className="task-preview-list">{task.listName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {tomorrowEvents.length === 0 && tomorrowTasks.length === 0 ? (
+              <p className="empty-message">{t('calendar.noEvents')}</p>
+            ) : (
+              <div className="briefing-events">
+                {tomorrowEvents.map(event => (
+                  <EventCard key={event.id} event={event} onClick={() => {}} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Day After Tomorrow's Events Section */}
+          <section className="briefing-section events-section">
+            <h3 className="section-title">
+              {getDayAfterTomorrowLabel()} ({dayAfterTomorrowEvents.length + dayAfterTomorrowTasks.length})
+            </h3>
+            
+            {/* Day After Tomorrow's Meals */}
+            {dayAfterTomorrowMeals.length > 0 && (
+              <div className="meals-preview">
+                {dayAfterTomorrowMeals.map(meal => (
+                  <div key={meal.id} className="meal-preview-item">
+                    <span className="meal-preview-icon">{getMealIcon(meal.type)}</span>
+                    <span className="meal-preview-title">{meal.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Day After Tomorrow's Tasks */}
+            {dayAfterTomorrowTasks.length > 0 && (
+              <div className="tasks-preview">
+                {dayAfterTomorrowTasks.map(task => (
+                  <div key={task.id} className="task-preview-item">
+                    <span className="task-preview-icon">✓</span>
+                    <span className="task-preview-title">{task.text}</span>
+                    <span className="task-preview-list">{task.listName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {dayAfterTomorrowEvents.length === 0 && dayAfterTomorrowTasks.length === 0 ? (
+              <p className="empty-message">{t('calendar.noEvents')}</p>
+            ) : (
+              <div className="briefing-events">
+                {dayAfterTomorrowEvents.map(event => (
+                  <EventCard key={event.id} event={event} onClick={() => {}} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Day 3 Events Section */}
+          <section className="briefing-section events-section">
+            <h3 className="section-title">
+              {getDay3Label()} ({day3Events.length + day3Tasks.length})
+            </h3>
+            
+            {/* Day 3 Meals */}
+            {day3Meals.length > 0 && (
+              <div className="meals-preview">
+                {day3Meals.map(meal => (
+                  <div key={meal.id} className="meal-preview-item">
+                    <span className="meal-preview-icon">{getMealIcon(meal.type)}</span>
+                    <span className="meal-preview-title">{meal.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Day 3 Tasks */}
+            {day3Tasks.length > 0 && (
+              <div className="tasks-preview">
+                {day3Tasks.map(task => (
+                  <div key={task.id} className="task-preview-item">
+                    <span className="task-preview-icon">✓</span>
+                    <span className="task-preview-title">{task.text}</span>
+                    <span className="task-preview-list">{task.listName}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {day3Events.length === 0 && day3Tasks.length === 0 ? (
+              <p className="empty-message">{t('calendar.noEvents')}</p>
+            ) : (
+              <div className="briefing-events">
+                {day3Events.map(event => (
+                  <EventCard key={event.id} event={event} onClick={() => {}} />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      {/* Large Screen Sidebar - Weather & Stats (iPad Pro 12.9" only) */}
+      <aside className="dashboard-sidebar">
+        <div className="sidebar-section weather-widget">
+          <h3 className="sidebar-title">
+            {i18n.language === 'nl' ? '🌤️ Weer' : '🌤️ Weather'}
+          </h3>
+          {weather ? (
+            <div className="weather-widget-content">
+              <div className="weather-main-display">
+                <span className="weather-icon-large">{weather.icon || '☁️'}</span>
+                <span className="weather-temp-large">{weather.temperature ?? '--'}°</span>
+              </div>
+              <div className="weather-condition">{weather.description || ''}</div>
+              <div className="weather-details-grid">
+                <div className="weather-detail-item">
+                  <span className="detail-icon">💨</span>
+                  <span className="detail-value">{weather.windSpeed ?? '--'} km/h</span>
+                </div>
+                <div className="weather-detail-item">
+                  <span className="detail-icon">💧</span>
+                  <span className="detail-value">{weather.humidity ?? '--'}%</span>
+                </div>
+                <div className="weather-detail-item">
+                  <span className="detail-icon">🌧️</span>
+                  <span className="detail-value">{weather.precipitation ?? '--'}%</span>
+                </div>
+              </div>
             </div>
-            <p>{t('briefing.weatherWarning')}</p>
-            <div className="affected-events">
-              {outdoorEvents.map(event => (
-                <div key={event.id} className="warning-event">
-                  <span>{event.time}</span>
-                  <span>{event.title}</span>
-                  <span className="event-location">📍 {event.location}</span>
+          ) : (
+            <div className="weather-loading">{i18n.language === 'nl' ? 'Laden...' : 'Loading...'}</div>
+          )}
+        </div>
+        
+        {/* Loxone Home Stats */}
+        {loxoneAvailable && (
+          <div className="sidebar-section loxone-widget" onClick={() => onNavigate && onNavigate('home')}>
+            <h3 className="sidebar-title">🏠 {i18n.language === 'nl' ? 'Huis' : 'Home'}</h3>
+            <div className="loxone-stats-grid">
+              {/* Energy */}
+              {energyData && energyData.currentUsage !== null && (
+                <div className="loxone-stat-card">
+                  <span className="loxone-stat-icon">⚡</span>
+                  <div className="loxone-stat-info">
+                    <span className="loxone-stat-value">{(energyData.currentUsage * 1000).toFixed(0)}W</span>
+                    <span className="loxone-stat-label">{i18n.language === 'nl' ? 'Verbruik' : 'Usage'}</span>
+                  </div>
+                </div>
+              )}
+              {/* Temperature sensors */}
+              {sensorsData?.filter(s => s.type === 'temperature').slice(0, 2).map((sensor, idx) => (
+                <div key={`temp-${idx}`} className="loxone-stat-card">
+                  <span className="loxone-stat-icon">🌡️</span>
+                  <div className="loxone-stat-info">
+                    <span className="loxone-stat-value">{sensor.value.toFixed(1)}°C</span>
+                    <span className="loxone-stat-label">{sensor.name || (i18n.language === 'nl' ? 'Temperatuur' : 'Temp')}</span>
+                  </div>
                 </div>
               ))}
+              {/* Humidity */}
+              {sensorsData?.find(s => s.type === 'humidity') && (
+                <div className="loxone-stat-card">
+                  <span className="loxone-stat-icon">💧</span>
+                  <div className="loxone-stat-info">
+                    <span className="loxone-stat-value">{sensorsData.find(s => s.type === 'humidity').value.toFixed(0)}%</span>
+                    <span className="loxone-stat-label">{i18n.language === 'nl' ? 'Luchtvochtigheid' : 'Humidity'}</span>
+                  </div>
+                </div>
+              )}
+              {/* Solar production if available */}
+              {energyData && energyData.solarProduction !== null && energyData.solarProduction !== undefined && (
+                <div className="loxone-stat-card solar">
+                  <span className="loxone-stat-icon">☀️</span>
+                  <div className="loxone-stat-info">
+                    <span className="loxone-stat-value">{(energyData.solarProduction * 1000).toFixed(0)}W</span>
+                    <span className="loxone-stat-label">{i18n.language === 'nl' ? 'Zonne-energie' : 'Solar'}</span>
+                  </div>
+                </div>
+              )}
+              {/* Grid import/export */}
+              {energyData && energyData.gridImport !== null && energyData.gridImport !== undefined && (
+                <div className={`loxone-stat-card ${energyData.gridImport < 0 ? 'exporting' : ''}`}>
+                  <span className="loxone-stat-icon">{energyData.gridImport < 0 ? '📤' : '📥'}</span>
+                  <div className="loxone-stat-info">
+                    <span className="loxone-stat-value">{Math.abs(energyData.gridImport * 1000).toFixed(0)}W</span>
+                    <span className="loxone-stat-label">{energyData.gridImport < 0 ? (i18n.language === 'nl' ? 'Teruglevering' : 'Export') : (i18n.language === 'nl' ? 'Netafname' : 'Import')}</span>
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="warning-reason">
-              {weatherService.isOutdoorFriendly(weather).reason}
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* Today's Events Section */}
-      <section className="briefing-section events-section">
-        <h3 className="section-title">
-          {t('briefing.todaysEvents')} ({todayEvents.length + todayTasks.length})
-        </h3>
-        
-        {/* Today's Meals */}
-        {todayMeals.length > 0 && (
-          <div className="meals-preview">
-            {todayMeals.map(meal => (
-              <div key={meal.id} className="meal-preview-item">
-                <span className="meal-preview-icon">{getMealIcon(meal.type)}</span>
-                <span className="meal-preview-title">{meal.title}</span>
-              </div>
-            ))}
+            <div className="loxone-tap-hint">{i18n.language === 'nl' ? 'Tik voor meer →' : 'Tap for more →'}</div>
           </div>
         )}
-
-        {/* Today's Tasks */}
-        {todayTasks.length > 0 && (
-          <div className="tasks-preview">
-            {todayTasks.map(task => (
-              <div key={task.id} className="task-preview-item">
-                <span className="task-preview-icon">✓</span>
-                <span className="task-preview-title">{task.text}</span>
-                <span className="task-preview-list">{task.listName}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {todayEvents.length === 0 && todayTasks.length === 0 ? (
-          <p className="empty-message">{t('calendar.noEvents')}</p>
-        ) : (
-          <div className="briefing-events">
-            {todayEvents.map(event => (
-              <EventCard key={event.id} event={event} onClick={() => {}} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Tomorrow's Events Section */}
-      <section className="briefing-section events-section">
-        <h3 className="section-title">
-          {i18n.language === 'nl' ? 'Morgen' : 'Tomorrow'} ({tomorrowEvents.length + tomorrowTasks.length})
-        </h3>
-        
-        {/* Tomorrow's Meals */}
-        {tomorrowMeals.length > 0 && (
-          <div className="meals-preview">
-            {tomorrowMeals.map(meal => (
-              <div key={meal.id} className="meal-preview-item">
-                <span className="meal-preview-icon">{getMealIcon(meal.type)}</span>
-                <span className="meal-preview-title">{meal.title}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Tomorrow's Tasks */}
-        {tomorrowTasks.length > 0 && (
-          <div className="tasks-preview">
-            {tomorrowTasks.map(task => (
-              <div key={task.id} className="task-preview-item">
-                <span className="task-preview-icon">✓</span>
-                <span className="task-preview-title">{task.text}</span>
-                <span className="task-preview-list">{task.listName}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {tomorrowEvents.length === 0 && tomorrowTasks.length === 0 ? (
-          <p className="empty-message">{t('calendar.noEvents')}</p>
-        ) : (
-          <div className="briefing-events">
-            {tomorrowEvents.map(event => (
-              <EventCard key={event.id} event={event} onClick={() => {}} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Day After Tomorrow's Events Section */}
-      <section className="briefing-section events-section">
-        <h3 className="section-title">
-          {getDayAfterTomorrowLabel()} ({dayAfterTomorrowEvents.length + dayAfterTomorrowTasks.length})
-        </h3>
-        
-        {/* Day After Tomorrow's Meals */}
-        {dayAfterTomorrowMeals.length > 0 && (
-          <div className="meals-preview">
-            {dayAfterTomorrowMeals.map(meal => (
-              <div key={meal.id} className="meal-preview-item">
-                <span className="meal-preview-icon">{getMealIcon(meal.type)}</span>
-                <span className="meal-preview-title">{meal.title}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Day After Tomorrow's Tasks */}
-        {dayAfterTomorrowTasks.length > 0 && (
-          <div className="tasks-preview">
-            {dayAfterTomorrowTasks.map(task => (
-              <div key={task.id} className="task-preview-item">
-                <span className="task-preview-icon">✓</span>
-                <span className="task-preview-title">{task.text}</span>
-                <span className="task-preview-list">{task.listName}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {dayAfterTomorrowEvents.length === 0 && dayAfterTomorrowTasks.length === 0 ? (
-          <p className="empty-message">{t('calendar.noEvents')}</p>
-        ) : (
-          <div className="briefing-events">
-            {dayAfterTomorrowEvents.map(event => (
-              <EventCard key={event.id} event={event} onClick={() => {}} />
-            ))}
-          </div>
-        )}
-      </section>
+      </aside>
     </div>
   );
 };

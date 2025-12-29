@@ -20,3 +20,12 @@
     padding-bottom: 100px;
   }
 }
+
+/* iPad Pro 12.9" and larger - use full width */
+@media (min-width: 1200px) {
+  .main-content {
+    max-width: 100%;
+    padding: 8px;
+    padding-bottom: 100px;
+  }
+}

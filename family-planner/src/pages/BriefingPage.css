@@ -1136,3 +1136,382 @@
     margin: 0 auto;
   }
 }
+
+/* ========================================
+   DASHBOARD SIDEBAR - iPad Pro 12.9" Only
+   Hidden on smaller devices, shown on large tablets
+   ======================================== */
+
+/* Hide sidebar by default */
+.dashboard-sidebar {
+  display: none;
+}
+
+.dashboard-main {
+  display: contents;
+}
+
+/* Container for the 3 day sections - for horizontal layout on large screens */
+.days-container {
+  display: contents;
+}
+
+/* iPad Pro 12.9" Landscape Dashboard Layout */
+@media (min-width: 1200px) {
+  .briefing-page {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 12px;
+    padding: 8px 8px 100px 8px;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .dashboard-main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  /* Date section - more compact */
+  .dashboard-main .date-section {
+    margin-bottom: 0;
+    padding: 8px 0;
+  }
+
+  .dashboard-main .date-section .date-display {
+    font-size: 18px;
+  }
+
+  /* Smart alerts more compact */
+  .dashboard-main .smart-alerts-section {
+    margin-bottom: 0;
+  }
+
+  /* Days row - spans all 4 day sections */
+  .days-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .days-container .events-section {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .days-container .section-title {
+    font-size: 13px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+
+  .days-container .briefing-events {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  /* Sidebar on the right side */
+  .dashboard-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: sticky;
+    top: 70px;
+    height: fit-content;
+    max-height: calc(100vh - 170px);
+    overflow: hidden;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .sidebar-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8BC34A;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  /* Weather Widget */
+  .weather-widget-content {
+    text-align: center;
+  }
+
+  .weather-main-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .weather-icon-large {
+    font-size: 40px;
+  }
+
+  .weather-temp-large {
+    font-size: 40px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .weather-condition {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 10px;
+    text-transform: capitalize;
+  }
+
+  .weather-details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .weather-detail-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+  }
+
+  .weather-detail-item .detail-icon {
+    font-size: 14px;
+  }
+
+  .weather-detail-item .detail-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .weather-loading {
+    color: #666;
+    text-align: center;
+    padding: 20px;
+  }
+
+  /* Stats Widget */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .stat-item {
+    text-align: center;
+    padding: 12px 8px;
+    background: rgba(139, 195, 74, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(139, 195, 74, 0.2);
+  }
+
+  .stat-number {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+    color: #8BC34A;
+    line-height: 1.2;
+  }
+
+  .stat-item .stat-label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* Loxone Widget */
+  .loxone-widget {
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .loxone-widget:hover {
+    border-color: rgba(139, 195, 74, 0.4);
+    background: rgba(139, 195, 74, 0.1);
+  }
+
+  .loxone-stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .loxone-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+  }
+
+  .loxone-stat-card.solar {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.2);
+  }
+
+  .loxone-stat-card.exporting {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: rgba(76, 175, 80, 0.2);
+  }
+
+  .loxone-stat-card .loxone-stat-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .loxone-stat-info {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .loxone-stat-card .loxone-stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .loxone-stat-card .loxone-stat-label {
+    font-size: 10px;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .loxone-tap-hint {
+    margin-top: 8px;
+    text-align: center;
+    font-size: 10px;
+    color: #666;
+  }
+
+  /* Legacy stats (keeping for reference) */
+  .loxone-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .loxone-stat-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+  }
+
+  .loxone-stat-icon {
+    font-size: 20px;
+  }
+
+  .loxone-stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  /* Week Preview Widget */
+  .week-preview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .week-day-row {
+    display: grid;
+    grid-template-columns: 50px 30px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    transition: background 0.2s;
+  }
+
+  .week-day-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .week-day-row.today {
+    background: rgba(139, 195, 74, 0.15);
+    border: 1px solid rgba(139, 195, 74, 0.3);
+  }
+
+  .week-day-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+  }
+
+  .week-day-row.today .week-day-name {
+    color: #8BC34A;
+  }
+
+  .week-day-num {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+  }
+
+  .week-day-count {
+    font-size: 12px;
+    color: #666;
+    text-align: right;
+  }
+
+  .week-day-row.today .week-day-count {
+    color: #8BC34A;
+  }
+}
+
+/* Even larger screens (desktop/external monitor) */
+@media (min-width: 1500px) {
+  .briefing-page {
+    grid-template-columns: 1fr 340px;
+    max-width: 1800px;
+  }
+
+  .loxone-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .weather-icon-large,
+  .weather-temp-large {
+    font-size: 56px;
+  }
+
+  .stat-number {
+    font-size: 32px;
+  }
+}

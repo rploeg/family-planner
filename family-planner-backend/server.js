@@ -290,6 +290,123 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// ============================================
+// WEATHER API ENDPOINTS
+// Uses Open-Meteo API (free, no key required)
+// ============================================
+
+// Default location: Zeist, Netherlands
+const WEATHER_DEFAULT_LAT = 52.0907;
+const WEATHER_DEFAULT_LON = 5.2334;
+const WEATHER_API_BASE = 'https://api.open-meteo.com/v1';
+
+// WMO Weather codes to condition text
+const weatherConditions = {
+  0: { nl: 'Helder', en: 'Clear', icon: '☀️' },
+  1: { nl: 'Overwegend helder', en: 'Mainly clear', icon: '🌤️' },
+  2: { nl: 'Gedeeltelijk bewolkt', en: 'Partly cloudy', icon: '⛅' },
+  3: { nl: 'Bewolkt', en: 'Overcast', icon: '☁️' },
+  45: { nl: 'Mist', en: 'Foggy', icon: '🌫️' },
+  48: { nl: 'IJsmist', en: 'Rime fog', icon: '🌫️' },
+  51: { nl: 'Lichte motregen', en: 'Light drizzle', icon: '🌧️' },
+  53: { nl: 'Motregen', en: 'Moderate drizzle', icon: '🌧️' },
+  55: { nl: 'Dichte motregen', en: 'Dense drizzle', icon: '🌧️' },
+  61: { nl: 'Lichte regen', en: 'Slight rain', icon: '🌧️' },
+  63: { nl: 'Regen', en: 'Moderate rain', icon: '🌧️' },
+  65: { nl: 'Zware regen', en: 'Heavy rain', icon: '🌧️' },
+  71: { nl: 'Lichte sneeuw', en: 'Slight snow', icon: '🌨️' },
+  73: { nl: 'Sneeuw', en: 'Moderate snow', icon: '🌨️' },
+  75: { nl: 'Zware sneeuw', en: 'Heavy snow', icon: '❄️' },
+  77: { nl: 'Sneeuwkorrels', en: 'Snow grains', icon: '🌨️' },
+  80: { nl: 'Lichte buien', en: 'Slight showers', icon: '🌦️' },
+  81: { nl: 'Buien', en: 'Moderate showers', icon: '🌦️' },
+  82: { nl: 'Zware buien', en: 'Violent showers', icon: '⛈️' },
+  85: { nl: 'Lichte sneeuwbuien', en: 'Slight snow showers', icon: '🌨️' },
+  86: { nl: 'Zware sneeuwbuien', en: 'Heavy snow showers', icon: '🌨️' },
+  95: { nl: 'Onweer', en: 'Thunderstorm', icon: '⛈️' },
+  96: { nl: 'Onweer met hagel', en: 'Thunderstorm with hail', icon: '⛈️' },
+  99: { nl: 'Onweer met zware hagel', en: 'Thunderstorm with heavy hail', icon: '⛈️' }
+};
+
+function getWeatherCondition(code) {
+  return weatherConditions[code] || { nl: 'Onbekend', en: 'Unknown', icon: '❓' };
+}
+
+// Get current weather and forecast
+app.get('/api/weather', async (req, res) => {
+  try {
+    const lat = parseFloat(req.query.lat) || WEATHER_DEFAULT_LAT;
+    const lon = parseFloat(req.query.lon) || WEATHER_DEFAULT_LON;
+    const lang = req.query.lang || 'nl';
+
+    const params = new URLSearchParams({
+      latitude: lat,
+      longitude: lon,
+      current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m',
+      hourly: 'temperature_2m,precipitation_probability,precipitation,weather_code',
+      daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset',
+      timezone: 'Europe/Amsterdam',
+      forecast_days: 7
+    });
+
+    const response = await fetch(`${WEATHER_API_BASE}/forecast?${params}`);
+    if (!response.ok) throw new Error('Failed to fetch weather data');
+    
+    const data = await response.json();
+    const condition = getWeatherCondition(data.current.weather_code);
+
+    const result = {
+      location: {
+        lat,
+        lon,
+        name: lat === WEATHER_DEFAULT_LAT && lon === WEATHER_DEFAULT_LON ? 'Zeist' : 'Custom'
+      },
+      current: {
+        temperature: Math.round(data.current.temperature_2m),
+        feelsLike: Math.round(data.current.apparent_temperature),
+        humidity: data.current.relative_humidity_2m,
+        windSpeed: Math.round(data.current.wind_speed_10m),
+        windDirection: data.current.wind_direction_10m,
+        precipitation: data.current.precipitation,
+        weatherCode: data.current.weather_code,
+        condition: condition[lang] || condition.en,
+        icon: condition.icon
+      },
+      hourly: data.hourly.time.slice(0, 24).map((time, index) => {
+        const cond = getWeatherCondition(data.hourly.weather_code[index]);
+        return {
+          time,
+          temperature: Math.round(data.hourly.temperature_2m[index]),
+          precipitationProbability: data.hourly.precipitation_probability[index],
+          precipitation: data.hourly.precipitation[index],
+          condition: cond[lang] || cond.en,
+          icon: cond.icon
+        };
+      }),
+      daily: data.daily.time.map((date, index) => {
+        const cond = getWeatherCondition(data.daily.weather_code[index]);
+        return {
+          date,
+          maxTemp: Math.round(data.daily.temperature_2m_max[index]),
+          minTemp: Math.round(data.daily.temperature_2m_min[index]),
+          precipitationSum: data.daily.precipitation_sum[index],
+          precipitationProbability: data.daily.precipitation_probability_max[index],
+          sunrise: data.daily.sunrise[index],
+          sunset: data.daily.sunset[index],
+          condition: cond[lang] || cond.en,
+          icon: cond.icon
+        };
+      }),
+      fetchedAt: new Date().toISOString()
+    };
+
+    res.json(result);
+  } catch (error) {
+    console.error('Weather API error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch weather data', details: error.message });
+  }
+});
+
 // Get current configuration (all settings)
 app.get('/api/config', (req, res) => {
   res.json({
