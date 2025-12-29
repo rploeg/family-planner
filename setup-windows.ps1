@@ -125,9 +125,9 @@ if (-not $serverIP) {
     $serverIP = Read-Host "Enter server IP address (e.g., 192.168.1.100)"
 }
 
-$envContent = "REACT_APP_API_BASE_URL=http://${serverIP}:3002/api"
+$envContent = "REACT_APP_API_BASE_URL=http://${serverIP}:3002"
 Set-Content -Path ".env.production.local" -Value $envContent
-Write-Host "Frontend will use API at: http://${serverIP}:3002/api" -ForegroundColor Cyan
+Write-Host "Frontend will use API at: http://${serverIP}:3002" -ForegroundColor Cyan
 
 npm run build
 Write-Host "Frontend built" -ForegroundColor Green
