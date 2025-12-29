@@ -1,5 +1,5 @@
 // Service Worker for Family Planner PWA
-const CACHE_NAME = 'family-planner-v1';
+const CACHE_NAME = 'family-planner-v2';
 const urlsToCache = [
   '/',
   '/index.html',
