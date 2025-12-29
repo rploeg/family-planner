@@ -113,6 +113,21 @@ async function getListType(listId) {
 }
 
 // Bidirectional sync function - syncs both grocery and task lists
+// Helper to normalize date to YYYY-MM-DD format
+function normalizeDateToYYYYMMDD(dateValue) {
+  if (!dateValue) return null;
+  // If already in YYYY-MM-DD format, return as-is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
+  // Parse ISO date and convert to YYYY-MM-DD
+  try {
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return null;
+    return date.toISOString().split('T')[0];
+  } catch {
+    return null;
+  }
+}
+
 async function performBidirectionalSync() {
   if (!googleTasksService.isInitialized) return;
   
@@ -169,10 +184,11 @@ async function syncListWithGoogle(localListId, listType) {
         // New task from Google - create in database
         const now = new Date().toISOString();
         const newId = `google-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const normalizedDueDate = normalizeDateToYYYYMMDD(googleTask.dueDate);
         await db.run(
           `INSERT INTO shopping_list_items (id, listId, text, checked, addedBy, category, createdAt, updatedAt, googleTaskId, dueDate)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [newId, localListId, googleTask.title, googleTask.completed ? 1 : 0, 'Google', googleTask.notes || 'household', now, now, googleTask.id, googleTask.dueDate || null]
+          [newId, localListId, googleTask.title, googleTask.completed ? 1 : 0, 'Google', googleTask.notes || 'household', now, now, googleTask.id, normalizedDueDate]
         );
         console.log(`  ↓ Pulled from Google (${listType}): ${googleTask.title}`);
         pulledNew++;
@@ -184,10 +200,11 @@ async function syncListWithGoogle(localListId, listType) {
         if (googleUpdated > dbUpdated) {
           // Google is newer - update local
           const googleChecked = googleTask.completed ? 1 : 0;
-          if (dbItem.text !== googleTask.title || dbItem.checked !== googleChecked) {
+          const normalizedDueDate = normalizeDateToYYYYMMDD(googleTask.dueDate);
+          if (dbItem.text !== googleTask.title || dbItem.checked !== googleChecked || dbItem.dueDate !== normalizedDueDate) {
             await db.run(
               `UPDATE shopping_list_items SET text = ?, checked = ?, updatedAt = ?, dueDate = ? WHERE id = ?`,
-              [googleTask.title, googleChecked, googleTask.updatedAt, googleTask.dueDate || null, dbItem.id]
+              [googleTask.title, googleChecked, googleTask.updatedAt, normalizedDueDate, dbItem.id]
             );
             console.log(`  ↓ Updated from Google (${listType}): ${googleTask.title}`);
             pulledUpdates++;
