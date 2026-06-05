@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from './LanguageSwitcher';
 import TimerModal from './TimerModal';
 import NotificationsModal from './NotificationsModal';
-import weatherService from '../services/weatherService';
 import { useTimer } from '../context/TimerContext';
 import { useLists } from '../context/ListsContext';
 import './Header.css';
 
 const Header = ({ onNavigate, alerts = [], dismissedAlertIds = [], onRestoreAlert }) => {
   const [time, setTime] = useState(new Date());
-  const [weather, setWeather] = useState(null);
   const [showTimerModal, setShowTimerModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const { i18n } = useTranslation();
@@ -46,24 +43,10 @@ const Header = ({ onNavigate, alerts = [], dismissedAlertIds = [], onRestoreAler
       setTime(new Date());
     }, 60000); // Update every minute
 
-    // Load real weather
-    loadWeather();
-    const weatherTimer = setInterval(loadWeather, 600000); // Update every 10 minutes
-
     return () => {
       clearInterval(timer);
-      clearInterval(weatherTimer);
     };
   }, []);
-
-  const loadWeather = async () => {
-    try {
-      const data = await weatherService.getWeather();
-      setWeather(data.current);
-    } catch (error) {
-      console.error('Failed to load weather:', error);
-    }
-  };
 
   const formatTime = (date) => {
     return date.toLocaleTimeString(i18n.language === 'nl' ? 'nl-NL' : 'en-US', { 
@@ -85,12 +68,6 @@ const Header = ({ onNavigate, alerts = [], dismissedAlertIds = [], onRestoreAler
       <header className="app-header">
         <div className="header-left">
           <span className="greeting-text">{getGreeting()}</span>
-          <span className="weather-info">
-            <span className="icon-cloud">{weather?.icon || '☁️'}</span>
-            <span className="temp">{weather ? Math.round(weather.temperature) : '--'}°</span>
-            <span className="weather-detail">{i18n.language === 'nl' ? 'Neerslag' : 'Rain'}: {weather?.precipitation || 0}%</span>
-            <span className="weather-detail">{i18n.language === 'nl' ? 'Wind' : 'Wind'}: {weather ? Math.round(weather.windSpeed) : '--'} km/h</span>
-          </span>
         </div>
         <div className="header-center">
           {isRunning ? (
@@ -158,7 +135,6 @@ const Header = ({ onNavigate, alerts = [], dismissedAlertIds = [], onRestoreAler
             )}
           </button>
           <span className="time">{formatTime(time)}</span>
-          <LanguageSwitcher />
         </div>
       </header>
 

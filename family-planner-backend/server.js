@@ -1451,6 +1451,24 @@ app.get('/api/loxone/debug/query', async (req, res) => {
   }
 });
 
+// Play audio on Loxone audio zone
+app.post('/api/loxone/audio/:uuid/play', async (req, res) => {
+  try {
+    if (!loxoneService.isInitialized) {
+      return res.status(503).json({ error: 'Loxone service not configured' });
+    }
+    
+    const { uuid } = req.params;
+    const { sound } = req.body; // Optional: specific sound/bell number
+    
+    const result = await loxoneService.playAudio(uuid, sound);
+    res.json(result);
+  } catch (error) {
+    console.error('Error playing audio:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Debug endpoint to check WebSocket state cache
 app.get('/api/loxone/debug/ws-state', async (req, res) => {
   try {

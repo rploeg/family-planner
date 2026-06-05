@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import api from '../services/api';
 
 const TimerContext = createContext();
 
@@ -18,6 +19,19 @@ export const TimerProvider = ({ children }) => {
   const intervalRef = useRef(null);
   const endTimeRef = useRef(null);
   const alarmIntervalRef = useRef(null);
+
+  // Loxone Audio Player UUID (Kitchen audio zone)
+  const LOXONE_AUDIO_UUID = '208f8107-0374-807a-ffffe1193ce27325';
+
+  // Play Loxone audio
+  const playLoxoneAudio = async () => {
+    try {
+      await api.playLoxoneAudio(LOXONE_AUDIO_UUID);
+      console.log('Loxone audio bell triggered');
+    } catch (error) {
+      console.error('Failed to play Loxone audio:', error);
+    }
+  };
 
   // Play repeating alarm sound
   const playAlarmSound = () => {
@@ -79,7 +93,10 @@ export const TimerProvider = ({ children }) => {
           setIsRunning(false);
           setIsPaused(false);
           
-          // Play repeating alarm sound
+          // Play Loxone audio bell
+          playLoxoneAudio();
+          
+          // Also play browser alarm sound as backup
           playAlarmSound();
         }
       }, 100); // Update every 100ms for smooth countdown

@@ -197,6 +197,13 @@ class ApiService {
     });
   }
 
+  async playLoxoneAudio(uuid, sound = null) {
+    return this.request(`/api/loxone/audio/${uuid}/play`, {
+      method: 'POST',
+      body: JSON.stringify({ sound }),
+    });
+  }
+
   // ============= RECIPES API =============
   async searchRecipes(query) {
     return this.request(`/api/recipes/search?q=${encodeURIComponent(query)}`);

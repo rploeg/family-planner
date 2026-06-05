@@ -55,6 +55,8 @@ class LoxoneService {
         console.log('✓ Loxone service ready');
         // Connect WebSocket for real-time state updates
         this.connectWebSocket();
+        // Start polling for state changes (fallback for when WebSocket isn't providing updates)
+        this.startPolling(5000);
       }
     } catch (error) {
       console.error('Failed to initialize Loxone:', error.message);
@@ -597,15 +599,17 @@ class LoxoneService {
           // Get activeMoods state UUID from the control structure
           const activeMoodsStateUuid = control.states?.activeMoods;
           
-          // Try WebSocket cached value first (real-time), fall back to REST API
+          // Query the actual state from Loxone
           let activeMood = null;
           if (activeMoodsStateUuid) {
+            // First try to get the cached value (if WebSocket is working)
             activeMood = this.getCachedStateValue(activeMoodsStateUuid);
-          }
-          
-          // If no cached value, try REST API (which may not return real state)
-          if (activeMood === null) {
-            activeMood = await this.getStateValue(uuid, 'activeMoods');
+            
+            // If no cached value or WebSocket is disconnected, query REST API using the state UUID directly
+            if (activeMood === null || !this.wsConnected) {
+              // Query the state UUID directly, not the control UUID with a suffix
+              activeMood = await this.getStateValue(activeMoodsStateUuid, '');
+            }
           }
           
           const isOn = activeMood !== null && activeMood > 0;
@@ -648,8 +652,24 @@ class LoxoneService {
         httpsAgent: new https.Agent({ rejectUnauthorized: false })
       });
       
-      // Notify state change immediately (will be confirmed by next poll)
-      this.notifyStateUpdate(`light:${uuid}`, { on });
+      // Force an immediate state refresh after toggle by querying the structure
+      const structure = await this.getStructureFile();
+      const control = structure?.controls?.[uuid];
+      const activeMoodsStateUuid = control?.states?.activeMoods;
+      
+      if (activeMoodsStateUuid) {
+        // Wait a brief moment for Loxone to process the command
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Query the new state value
+        const newState = await this.getStateValue(activeMoodsStateUuid, '');
+        
+        // Update cache immediately
+        if (newState !== null) {
+          this.stateValues.set(activeMoodsStateUuid, newState);
+          console.log(`[Loxone] Light ${uuid} state updated: activeMood=${newState}`);
+        }
+      }
       
       return {
         success: true,
@@ -689,6 +709,36 @@ class LoxoneService {
       };
     } catch (error) {
       console.error(`[Loxone] Failed to set mood for light ${uuid}:`, error.message);
+      throw error;
+    }
+  }
+
+  // Play audio/bell sound on an audio zone
+  async playAudio(uuid, sound = null) {
+    try {
+      // Use 'Alarm' command which is typically louder and more noticeable
+      // If sound number is provided, use Alarm/<number>, otherwise just Alarm for default
+      const command = sound ? `Alarm/${sound}` : 'Alarm';
+      const url = `${this.serverUrl}/jdev/sps/io/${uuid}/${command}`;
+      const auth = Buffer.from(`${this.username}:${this.password}`).toString('base64');
+      
+      console.log(`[Loxone] Play audio on ${uuid} -> ${command}`);
+      
+      const response = await axios.get(url, {
+        timeout: 5000,
+        headers: {
+          'Authorization': `Basic ${auth}`
+        },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false })
+      });
+      
+      return {
+        success: true,
+        command,
+        response: response.data
+      };
+    } catch (error) {
+      console.error(`[Loxone] Failed to play audio on ${uuid}:`, error.message);
       throw error;
     }
   }
@@ -923,22 +973,31 @@ class LoxoneService {
       // Check for changes and notify
       const updates = [];
       
+      // Get structure to access state UUIDs
+      const structure = await this.getStructureFile();
+      
       for (const light of lights) {
-        const stateKey = `light:${light.uuid}`;
-        const oldValue = this.stateValues.get(stateKey);
-        const newValue = light.activeMood;
+        // Use the activeMoods state UUID as the cache key, not the control UUID
+        const control = structure?.controls?.[light.uuid];
+        const activeMoodsStateUuid = control?.states?.activeMoods;
         
-        if (oldValue !== newValue) {
-          updates.push({
-            type: 'light',
-            uuid: light.uuid,
-            name: light.name,
-            room: light.room,
-            oldValue,
-            value: newValue,
-            isOn: light.isOn
-          });
-          this.stateValues.set(stateKey, newValue);
+        if (activeMoodsStateUuid) {
+          const oldValue = this.stateValues.get(activeMoodsStateUuid);
+          const newValue = light.activeMood;
+          
+          if (oldValue !== newValue) {
+            updates.push({
+              type: 'light',
+              uuid: light.uuid,
+              name: light.name,
+              room: light.room,
+              oldValue,
+              value: newValue,
+              isOn: light.isOn
+            });
+          }
+          // Store using the state UUID so getLights() can find it
+          this.stateValues.set(activeMoodsStateUuid, newValue);
         }
       }
       
