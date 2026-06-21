@@ -1,5 +1,7 @@
 # Windows Server Deployment Setup
 
+For Ubuntu and Portainer deployment, use [PORTAINER.md](PORTAINER.md).
+
 ## Prerequisites
 
 ### 1. Windows Server Setup

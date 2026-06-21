@@ -1,0 +1,52 @@
+services:
+  backend:
+    build:
+      context: ./family-planner-backend
+      dockerfile: Dockerfile
+    container_name: family-planner-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_PATH: /app/data/family-planner.db
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      CALENDAR_SOURCE: ${CALENDAR_SOURCE:-apple}
+      GOOGLE_CALENDAR_ENABLED: ${GOOGLE_CALENDAR_ENABLED:-false}
+      GOOGLE_SYNC_INTERVAL: ${GOOGLE_SYNC_INTERVAL:-60}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/google/callback}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_TASKS_LIST_NAME: ${GOOGLE_TASKS_LIST_NAME:-Shopping List}
+      GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:-primary}
+      CALDAV_SERVER_URL: ${CALDAV_SERVER_URL:-}
+      CALDAV_USERNAME: ${CALDAV_USERNAME:-}
+      CALDAV_PASSWORD: ${CALDAV_PASSWORD:-}
+      LOXONE_SERVER_URL: ${LOXONE_SERVER_URL:-}
+      LOXONE_USERNAME: ${LOXONE_USERNAME:-}
+      LOXONE_PASSWORD: ${LOXONE_PASSWORD:-}
+    volumes:
+      - family_planner_data:/app/data
+    networks:
+      - family-planner
+
+  frontend:
+    build:
+      context: ./family-planner
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_BASE_URL: ${REACT_APP_API_BASE_URL:-}
+    container_name: family-planner-frontend
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    restart: unless-stopped
+    networks:
+      - family-planner
+
+volumes:
+  family_planner_data:
+
+networks:
+  family-planner:
+    driver: bridge

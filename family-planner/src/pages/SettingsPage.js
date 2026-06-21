@@ -2,7 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import './SettingsPage.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3002';
+function getApiBaseUrl() {
+  const configuredBaseUrl = process.env.REACT_APP_API_BASE_URL?.trim();
+
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/$/, '');
+  }
+
+  if (typeof window !== 'undefined') {
+    const { hostname, origin, port, protocol } = window.location;
+
+    if (port === '3000') {
+      return `${protocol}//${hostname}:3002`;
+    }
+
+    return origin;
+  }
+
+  return 'http://localhost:3002';
+}
+
+const API_BASE = getApiBaseUrl();
 
 const SettingsPage = () => {
   const { t, i18n } = useTranslation();
