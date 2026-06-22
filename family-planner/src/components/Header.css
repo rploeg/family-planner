@@ -320,6 +320,60 @@
     transform: none;
   }
   
+
+/* iPad Pro 12.9" portrait */
+@media (min-width: 1024px) and (max-width: 1100px) and (orientation: portrait) and (pointer: coarse) {
+  .app-header {
+    padding: 10px 14px;
+  }
+
+  .header-left,
+  .header-right {
+    min-width: 120px;
+    gap: 8px;
+  }
+
+  .greeting-text {
+    margin-right: 4px;
+    font-size: 13px;
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .logo {
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  .notification-bell-button,
+  .shopping-basket-button {
+    padding: 7px 10px;
+    font-size: 18px;
+  }
+
+  .time {
+    font-size: 16px;
+  }
+}
+
+/* iPad Pro 12.9" landscape */
+@media (min-width: 1101px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
+  .app-header {
+    padding: 10px 18px;
+  }
+
+  .header-left,
+  .header-right {
+    min-width: 170px;
+    gap: 10px;
+  }
+
+  .greeting-text {
+    margin-right: 8px;
+  }
+}
   .shopping-basket-button:active {
     background: rgba(139, 195, 74, 0.3);
     transform: scale(0.95);

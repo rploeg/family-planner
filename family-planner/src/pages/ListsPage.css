@@ -34,7 +34,7 @@
 .lists-container {
   display: flex;
   gap: 24px;
-  height: calc(100vh - 180px);
+  height: calc(100dvh - 180px);
 }
 
 .lists-sidebar {
@@ -493,5 +493,102 @@
   .lists-sidebar {
     width: 100%;
     max-height: 200px;
+  }
+}
+
+/* iPad Pro 12.9" portrait (1024 x 1366 CSS px) */
+@media (min-width: 1024px) and (max-width: 1100px) and (orientation: portrait) and (pointer: coarse) {
+  .lists-container {
+    flex-direction: column;
+    height: auto;
+    gap: 12px;
+  }
+
+  .lists-sidebar {
+    width: 100%;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .list-tab {
+    min-width: 220px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .list-content {
+    min-height: calc(100dvh - 410px);
+    padding: 16px;
+  }
+
+  .list-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .list-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .add-item-section {
+    flex-wrap: wrap;
+  }
+
+  .add-item-section .add-item-input {
+    flex-basis: 100%;
+  }
+
+  .category-select,
+  .due-date-input {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .add-item-section .add-item-btn {
+    width: 100%;
+  }
+
+  .item-text-row {
+    flex-wrap: wrap;
+  }
+}
+
+/* iPad Pro 12.9" landscape (1366 x 1024 CSS px) */
+@media (min-width: 1101px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
+  .lists-container {
+    gap: 16px;
+    height: calc(100dvh - 190px);
+  }
+
+  .lists-sidebar {
+    width: 260px;
+    padding: 12px;
+  }
+
+  .list-content {
+    padding: 18px;
+  }
+
+  .list-icon-large {
+    font-size: 40px;
+  }
+
+  .list-title-section h3 {
+    font-size: 24px;
+  }
+
+  .add-item-section {
+    gap: 10px;
+  }
+
+  .category-select {
+    min-width: 130px;
   }
 }
