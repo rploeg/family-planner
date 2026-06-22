@@ -266,9 +266,29 @@ async function syncListWithGoogle(localListId, listType) {
     if (created + updated + pulledNew + pulledUpdates + deleted > 0) {
       console.log(`✓ Sync ${listType}: ↑${created} created, ↔${updated} updated, ↓${pulledNew} new, ↓${pulledUpdates} updates, ✗${deleted} deleted`);
     }
+
+    return {
+      status: 'success',
+      listType,
+      created,
+      updated,
+      pulledNew,
+      pulledUpdates,
+      deleted
+    };
     
   } catch (error) {
     console.error(`Sync error for ${listType}:`, error.message);
+    return {
+      status: 'error',
+      listType,
+      error: error.message,
+      created: 0,
+      updated: 0,
+      pulledNew: 0,
+      pulledUpdates: 0,
+      deleted: 0
+    };
   }
 }
 
@@ -1205,35 +1225,32 @@ app.post('/api/google/sync', async (req, res) => {
     }
     
     console.log('📱 Manual Google Tasks sync requested');
-    
-    // Get shopping list items from database
-    const shoppingLists = await db.all('SELECT * FROM shopping_lists');
-    let allItems = [];
-    
-    for (const list of shoppingLists) {
-      const items = await db.all(
-        'SELECT * FROM shopping_list_items WHERE listId = ?',
-        [list.id]
-      );
-      allItems = allItems.concat(items.map(item => ({
-        ...item,
-        name: item.text, // Map 'text' to 'name' for GoogleTasksService
-        listName: list.name
-      })));
+
+    // Use the same bidirectional path as periodic sync so pulled Google tasks are
+    // persisted into local lists.
+    const groceryResult = await syncListWithGoogle('list1', 'grocery');
+
+    const taskList = await db.get("SELECT id FROM shopping_lists WHERE type = 'tasks' LIMIT 1");
+    let tasksResult = null;
+    if (taskList?.id) {
+      tasksResult = await syncListWithGoogle(taskList.id, 'tasks');
     }
-    
-    const result = await googleTasksService.performSync(allItems);
-    
-    // Handle sync events - update local DB with Google Task IDs
-    for (const item of allItems) {
-      if (result.syncedItems && result.syncedItems[item.id]) {
-        await db.run(
-          'UPDATE shopping_list_items SET googleTaskId = ? WHERE id = ?',
-          [result.syncedItems[item.id], item.id]
-        );
+
+    const result = {
+      status: groceryResult.status === 'error' || tasksResult?.status === 'error' ? 'error' : 'success',
+      timestamp: new Date().toISOString(),
+      lists: {
+        grocery: groceryResult,
+        tasks: tasksResult || { status: 'skipped', reason: 'No local tasks list found' }
+      },
+      summary: {
+        created: (groceryResult.created || 0) + (tasksResult?.created || 0),
+        updated: (groceryResult.updated || 0) + (tasksResult?.updated || 0),
+        pulled: (groceryResult.pulledNew || 0) + (groceryResult.pulledUpdates || 0) + (tasksResult?.pulledNew || 0) + (tasksResult?.pulledUpdates || 0),
+        deleted: (groceryResult.deleted || 0) + (tasksResult?.deleted || 0)
       }
-    }
-    
+    };
+
     res.json(result);
   } catch (error) {
     console.error('Google Tasks sync error:', error);
