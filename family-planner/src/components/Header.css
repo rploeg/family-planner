@@ -217,13 +217,10 @@
   color: white;
   font-size: 10px;
   font-weight: 600;
-  padding: 2px 6px;
+  padding: 2px 5px;
   border-radius: 10px;
   min-width: 18px;
   text-align: center;
-  display: flex;
-  align-items: center;
-  gap: 2px;
 }
 
 .kids-badge {

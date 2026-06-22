@@ -128,10 +128,7 @@ const Header = ({ onNavigate, alerts = [], dismissedAlertIds = [], onRestoreAler
           >
             🛒
             {totalItems > 0 && (
-              <span className="basket-badge">
-                {totalItems}
-                {kidsItems > 0 && <span className="kids-badge">👶{kidsItems}</span>}
-              </span>
+              <span className="basket-badge">{totalItems}</span>
             )}
           </button>
           <span className="time">{formatTime(time)}</span>
