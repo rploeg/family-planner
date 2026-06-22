@@ -3,6 +3,9 @@ services:
     build:
       context: ./family-planner-backend
       dockerfile: Dockerfile
+      args:
+        BUILD_COMMIT: ${BUILD_COMMIT:-b1af40d}
+        BUILD_DATE: ${BUILD_DATE:-2026-06-22}
     container_name: family-planner-backend
     restart: unless-stopped
     environment:
