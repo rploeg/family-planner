@@ -106,23 +106,31 @@ const SettingsPage = () => {
     setSaving(true);
     setMessage(null);
     try {
+      console.log('Saving config:', formData);
       const response = await fetch(`${API_BASE}/api/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+      console.log('Config save response status:', response.status);
+      
       if (response.ok) {
         const result = await response.json();
+        console.log('Config saved successfully:', result);
         setMessage({ 
           type: 'success', 
           text: '✓ Instellingen opgeslagen! Herstart de server om wijzigingen toe te passen.' 
         });
         setEditMode(false);
-        loadConfig();
+        // Don't reload config immediately - let user see success message
+        setTimeout(() => loadConfig(), 2000);
       } else {
-        throw new Error('Opslaan mislukt');
+        const errorText = await response.text();
+        console.error('Config save failed:', response.status, errorText);
+        throw new Error(`Opslaan mislukt (${response.status}): ${errorText}`);
       }
     } catch (error) {
+      console.error('Error saving config:', error);
       setMessage({ type: 'error', text: error.message });
     } finally {
       setSaving(false);
