@@ -31,6 +31,7 @@ console.log(`[Startup] LOXONE_PASSWORD: ${process.env.LOXONE_PASSWORD ? '(set)' 
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const cron = require('node-cron');
 const DatabaseManager = require('./database/DatabaseManager');
 const CalDAVService = require('./services/CalDAVService');
 const GoogleTasksService = require('./services/GoogleTasksService');
@@ -1834,13 +1835,34 @@ server.listen(PORT, () => {
   console.log(`   Calendar Source: ${CALENDAR_SOURCE}`);
   console.log(`   Loxone: ${process.env.LOXONE_SERVER_URL || 'not configured'}`);
   console.log(`   Google Tasks: ${googleTasksService.isInitialized ? 'connected' : 'not authorized'}`);
+
+  // Set up automatic Google Tasks sync every 30 minutes
+  if (googleTasksService.isInitialized) {
+    console.log(`⏱️  Setting up automatic Google Tasks sync every 30 minutes`);
+    // Run at minute 0 and 30 of every hour
+    cron.schedule('0,30 * * * *', async () => {
+      const now = new Date().toLocaleString();
+      console.log(`\n🔄 [${now}] Starting scheduled Google Tasks sync...`);
+      try {
+        await performBidirectionalSync();
+        console.log(`✓ [${now}] Scheduled sync completed successfully\n`);
+      } catch (error) {
+        console.error(`✗ [${now}] Scheduled sync failed:`, error.message, '\n');
+      }
+    });
+  } else {
+    console.log(`⚠️  Google Tasks not initialized - automatic sync disabled`);
+    console.log(`   Authorize with Google first via Settings to enable automatic sync`);
+  }
 });
+
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n⏹ Shutting down gracefully...');
   if (googleSyncTimer) clearInterval(googleSyncTimer);
   if (loxoneService) loxoneService.stopPolling();
+  cron.getTasks().forEach(task => task.stop()); // Stop all cron jobs
   db.close();
   process.exit(0);
 });
