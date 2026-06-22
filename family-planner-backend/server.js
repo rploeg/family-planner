@@ -18,6 +18,13 @@ if (fs.existsSync(envPath)) {
 
 require('dotenv').config({ path: envPath, override: true });
 
+// Guard against persisted placeholder strings in .env.
+['CALDAV_PASSWORD', 'GOOGLE_CLIENT_SECRET', 'LOXONE_PASSWORD'].forEach((key) => {
+  if (process.env[key] === 'undefined' || process.env[key] === 'null') {
+    process.env[key] = '';
+  }
+});
+
 console.log(`[Startup] LOXONE_SERVER_URL: ${process.env.LOXONE_SERVER_URL || 'not set'}`);
 console.log(`[Startup] LOXONE_USERNAME: ${process.env.LOXONE_USERNAME || 'not set'}`);
 console.log(`[Startup] LOXONE_PASSWORD: ${process.env.LOXONE_PASSWORD ? '(set)' : 'not set'}`);
@@ -144,6 +151,14 @@ async function getListType(listId) {
   }
 }
 
+async function getGroceryListId() {
+  const groceryList = await db.get("SELECT id FROM shopping_lists WHERE type = 'grocery' ORDER BY createdAt ASC LIMIT 1");
+  if (groceryList?.id) return groceryList.id;
+
+  const anyList = await db.get('SELECT id FROM shopping_lists ORDER BY createdAt ASC LIMIT 1');
+  return anyList?.id || null;
+}
+
 // Bidirectional sync function - syncs both grocery and task lists
 // Helper to normalize date to YYYY-MM-DD format
 function normalizeDateToYYYYMMDD(dateValue) {
@@ -164,8 +179,11 @@ async function performBidirectionalSync() {
   if (!googleTasksService.isInitialized) return;
   
   try {
-    // Sync grocery list (list1 → Shopping List)
-    await syncListWithGoogle('list1', 'grocery');
+    // Sync grocery list to Google Shopping list
+    const groceryListId = await getGroceryListId();
+    if (groceryListId) {
+      await syncListWithGoogle(groceryListId, 'grocery');
+    }
     
     // Sync task list (Taken → default Google Tasks)
     const taskList = await db.get("SELECT id FROM shopping_lists WHERE type = 'tasks' LIMIT 1");
@@ -539,7 +557,10 @@ app.post('/api/config', async (req, res) => {
       content.split('\n').forEach(line => {
         if (line && !line.startsWith('#')) {
           const [key, ...valueParts] = line.split('=');
-          if (key) currentEnv[key.trim()] = valueParts.join('=').trim();
+          if (key) {
+            const parsedValue = valueParts.join('=').trim();
+            currentEnv[key.trim()] = (parsedValue === 'undefined' || parsedValue === 'null') ? '' : parsedValue;
+          }
         }
       });
     }
@@ -1228,7 +1249,19 @@ app.post('/api/google/sync', async (req, res) => {
 
     // Use the same bidirectional path as periodic sync so pulled Google tasks are
     // persisted into local lists.
-    const groceryResult = await syncListWithGoogle('list1', 'grocery');
+    const groceryListId = await getGroceryListId();
+    const groceryResult = groceryListId
+      ? await syncListWithGoogle(groceryListId, 'grocery')
+      : {
+          status: 'skipped',
+          listType: 'grocery',
+          reason: 'No local grocery list found',
+          created: 0,
+          updated: 0,
+          pulledNew: 0,
+          pulledUpdates: 0,
+          deleted: 0
+        };
 
     const taskList = await db.get("SELECT id FROM shopping_lists WHERE type = 'tasks' LIMIT 1");
     let tasksResult = null;
