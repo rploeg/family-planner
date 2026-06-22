@@ -5,7 +5,16 @@ const fs = require('fs');
 const envPath = process.env.NODE_ENV === 'production' 
   ? path.join(__dirname, 'data', '.env')
   : path.join(__dirname, '.env');
+
+console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`[Startup] Loading .env from: ${envPath}`);
+console.log(`[Startup] File exists: ${fs.existsSync(envPath)}`);
+
 require('dotenv').config({ path: envPath });
+
+console.log(`[Startup] LOXONE_SERVER_URL: ${process.env.LOXONE_SERVER_URL || 'not set'}`);
+console.log(`[Startup] LOXONE_USERNAME: ${process.env.LOXONE_USERNAME || 'not set'}`);
+console.log(`[Startup] LOXONE_PASSWORD: ${process.env.LOXONE_PASSWORD ? '(set)' : 'not set'}`);
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
