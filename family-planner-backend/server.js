@@ -151,7 +151,43 @@ async function getListType(listId) {
   }
 }
 
+async function ensureDefaultLists() {
+  const now = new Date().toISOString();
+  const existingLists = await db.all('SELECT id, type FROM shopping_lists');
+
+  if (existingLists.length === 0) {
+    await db.run(
+      'INSERT INTO shopping_lists (id, name, type, icon, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+      ['default-grocery', 'Boodschappen', 'grocery', '🛒', now, now]
+    );
+    await db.run(
+      'INSERT INTO shopping_lists (id, name, type, icon, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+      ['default-tasks', 'Taken', 'tasks', '✓', now, now]
+    );
+    return;
+  }
+
+  const hasGrocery = existingLists.some(list => list.type === 'grocery');
+  const hasTasks = existingLists.some(list => list.type === 'tasks');
+
+  if (!hasGrocery) {
+    await db.run(
+      'INSERT INTO shopping_lists (id, name, type, icon, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+      ['default-grocery', 'Boodschappen', 'grocery', '🛒', now, now]
+    );
+  }
+
+  if (!hasTasks) {
+    await db.run(
+      'INSERT INTO shopping_lists (id, name, type, icon, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+      ['default-tasks', 'Taken', 'tasks', '✓', now, now]
+    );
+  }
+}
+
 async function getGroceryListId() {
+  await ensureDefaultLists();
+
   const groceryList = await db.get("SELECT id FROM shopping_lists WHERE type = 'grocery' ORDER BY createdAt ASC LIMIT 1");
   if (groceryList?.id) return groceryList.id;
 
@@ -186,6 +222,7 @@ async function performBidirectionalSync() {
     }
     
     // Sync task list (Taken → default Google Tasks)
+    await ensureDefaultLists();
     const taskList = await db.get("SELECT id FROM shopping_lists WHERE type = 'tasks' LIMIT 1");
     if (taskList) {
       await syncListWithGoogle(taskList.id, 'tasks');
@@ -753,6 +790,7 @@ app.delete('/api/meals/:id', async (req, res) => {
 // ============= SHOPPING LISTS API =============
 app.get('/api/lists', async (req, res) => {
   try {
+    await ensureDefaultLists();
     const lists = await db.all('SELECT * FROM shopping_lists ORDER BY createdAt DESC');
     
     // Get items for each list
