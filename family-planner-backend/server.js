@@ -10,6 +10,12 @@ console.log(`[Startup] NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`[Startup] Loading .env from: ${envPath}`);
 console.log(`[Startup] File exists: ${fs.existsSync(envPath)}`);
 
+if (fs.existsSync(envPath)) {
+  const content = fs.readFileSync(envPath, 'utf8');
+  console.log(`[Startup] .env file size: ${content.length} bytes`);
+  console.log(`[Startup] .env first 500 chars:\n${content.substring(0, 500)}`);
+}
+
 require('dotenv').config({ path: envPath });
 
 console.log(`[Startup] LOXONE_SERVER_URL: ${process.env.LOXONE_SERVER_URL || 'not set'}`);
