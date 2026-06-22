@@ -1838,9 +1838,9 @@ server.listen(PORT, () => {
 
   // Set up automatic Google Tasks sync every 30 minutes
   if (googleTasksService.isInitialized) {
-    console.log(`⏱️  Setting up automatic Google Tasks sync every 30 minutes`);
-    // Run at minute 0 and 30 of every hour
-    cron.schedule('0,30 * * * *', async () => {
+    console.log(`⏱️  Setting up automatic Google Tasks sync every 5 minutes`);
+    // Run every 5 minutes
+    cron.schedule('*/5 * * * *', async () => {
       const now = new Date().toLocaleString();
       console.log(`\n🔄 [${now}] Starting scheduled Google Tasks sync...`);
       try {
