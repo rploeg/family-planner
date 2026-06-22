@@ -16,7 +16,7 @@ if (fs.existsSync(envPath)) {
   console.log(`[Startup] .env FULL CONTENT:\n${content}`);
 }
 
-require('dotenv').config({ path: envPath });
+require('dotenv').config({ path: envPath, override: true });
 
 console.log(`[Startup] LOXONE_SERVER_URL: ${process.env.LOXONE_SERVER_URL || 'not set'}`);
 console.log(`[Startup] LOXONE_USERNAME: ${process.env.LOXONE_USERNAME || 'not set'}`);
