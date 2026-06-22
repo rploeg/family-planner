@@ -62,6 +62,17 @@ const loxoneService = new LoxoneService({
 // Initialize Recipe Service
 const recipeService = new RecipeService();
 
+// Version/Build info for deployment verification
+let APP_VERSION = '1.0.0';
+let BUILD_COMMIT = process.env.BUILD_COMMIT || 'unknown';
+let BUILD_DATE = process.env.BUILD_DATE || new Date().toISOString();
+try {
+  const packageJson = require('./package.json');
+  APP_VERSION = packageJson.version;
+} catch (e) {
+  // Fallback if package.json not readable
+}
+
 // Google Tasks Sync Configuration
 const GOOGLE_SYNC_INTERVAL = parseInt(process.env.GOOGLE_SYNC_INTERVAL) || 60; // seconds
 let googleSyncTimer = null;
@@ -273,7 +284,10 @@ app.use(bodyParser.json());
 // Health Check
 app.get('/health', (req, res) => {
   res.json({ 
-    status: 'ok', 
+    status: 'ok',
+    version: APP_VERSION,
+    build: BUILD_COMMIT,
+    buildDate: BUILD_DATE,
     database: 'connected',
     caldav: calDAVService.isInitialized ? 'connected' : 'disconnected',
     googleCalendar: googleCalendarService.isInitialized ? 'connected' : 'disconnected',
@@ -286,7 +300,10 @@ app.get('/health', (req, res) => {
 // Status endpoint (alias for health check)
 app.get('/api/status', (req, res) => {
   res.json({ 
-    status: 'ok', 
+    status: 'ok',
+    version: APP_VERSION,
+    build: BUILD_COMMIT,
+    buildDate: BUILD_DATE,
     database: 'connected',
     caldav: calDAVService.isInitialized ? 'connected' : 'disconnected',
     googleCalendar: googleCalendarService.isInitialized ? 'connected' : 'disconnected',
