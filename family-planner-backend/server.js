@@ -1,5 +1,11 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const fs = require('fs');
+
+// Load .env from persisted volume if in container, otherwise from app root
+const envPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, 'data', '.env')
+  : path.join(__dirname, '.env');
+require('dotenv').config({ path: envPath });
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -456,14 +462,23 @@ app.get('/api/config', (req, res) => {
 // Save configuration to .env file
 app.post('/api/config', async (req, res) => {
   try {
-    const fs = require('fs');
     const config = req.body;
     
+    // Use persisted volume path in production (Docker), otherwise use app root
+    const configEnvPath = process.env.NODE_ENV === 'production'
+      ? path.join(__dirname, 'data', '.env')
+      : path.join(__dirname, '.env');
+    
+    // Ensure data directory exists
+    const dataDir = path.dirname(configEnvPath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
     // Read current .env file to preserve passwords if not changed
-    const envPath = path.join(__dirname, '.env');
     let currentEnv = {};
-    if (fs.existsSync(envPath)) {
-      const content = fs.readFileSync(envPath, 'utf8');
+    if (fs.existsSync(configEnvPath)) {
+      const content = fs.readFileSync(configEnvPath, 'utf8');
       content.split('\n').forEach(line => {
         if (line && !line.startsWith('#')) {
           const [key, ...valueParts] = line.split('=');
@@ -517,7 +532,7 @@ LOXONE_USERNAME=${config.loxone?.username || currentEnv.LOXONE_USERNAME || ''}
 LOXONE_PASSWORD=${config.loxone?.password === '********' ? currentEnv.LOXONE_PASSWORD : (config.loxone?.password || '')}
 `;
 
-    fs.writeFileSync(envPath, envContent);
+    fs.writeFileSync(configEnvPath, envContent);
     
     res.json({ 
       success: true, 
