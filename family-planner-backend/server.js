@@ -105,6 +105,14 @@ async function syncItemToGoogle(item, action = 'upsert') {
   
   // Determine list type based on the item's listId
   const listType = await getListType(item.listId);
+  const syncedListId = await getSyncedListId(listType);
+
+  // Only sync items that belong to the canonical synced list for this type.
+  // This prevents custom local lists (e.g. custom tasks lists) from being
+  // mirrored into the default synced list.
+  if (!syncedListId || item.listId !== syncedListId) {
+    return item.googleTaskId || null;
+  }
   
   try {
     if (action === 'create' || (action === 'upsert' && !item.googleTaskId)) {
@@ -151,6 +159,25 @@ async function getListType(listId) {
   }
 }
 
+// Resolve the local list that is allowed to sync with Google for a list type.
+// Prefer canonical default IDs and fall back to the oldest list of that type.
+async function getSyncedListId(listType) {
+  await ensureDefaultLists();
+
+  const defaultId = listType === 'tasks' ? 'default-tasks' : 'default-grocery';
+  const canonical = await db.get(
+    'SELECT id FROM shopping_lists WHERE id = ? AND type = ?',
+    [defaultId, listType]
+  );
+  if (canonical?.id) return canonical.id;
+
+  const fallback = await db.get(
+    'SELECT id FROM shopping_lists WHERE type = ? ORDER BY createdAt ASC LIMIT 1',
+    [listType]
+  );
+  return fallback?.id || null;
+}
+
 async function ensureDefaultLists() {
   const now = new Date().toISOString();
   const existingLists = await db.all('SELECT id, type FROM shopping_lists');
@@ -186,13 +213,7 @@ async function ensureDefaultLists() {
 }
 
 async function getGroceryListId() {
-  await ensureDefaultLists();
-
-  const groceryList = await db.get("SELECT id FROM shopping_lists WHERE type = 'grocery' ORDER BY createdAt ASC LIMIT 1");
-  if (groceryList?.id) return groceryList.id;
-
-  const anyList = await db.get('SELECT id FROM shopping_lists ORDER BY createdAt ASC LIMIT 1');
-  return anyList?.id || null;
+  return getSyncedListId('grocery');
 }
 
 // Bidirectional sync function - syncs both grocery and task lists
@@ -216,16 +237,15 @@ async function performBidirectionalSync() {
   
   try {
     // Sync grocery list to Google Shopping list
-    const groceryListId = await getGroceryListId();
+    const groceryListId = await getSyncedListId('grocery');
     if (groceryListId) {
       await syncListWithGoogle(groceryListId, 'grocery');
     }
     
-    // Sync task list (Taken → default Google Tasks)
-    await ensureDefaultLists();
-    const taskList = await db.get("SELECT id FROM shopping_lists WHERE type = 'tasks' LIMIT 1");
-    if (taskList) {
-      await syncListWithGoogle(taskList.id, 'tasks');
+    // Sync canonical task list (Taken -> default Google Tasks)
+    const taskListId = await getSyncedListId('tasks');
+    if (taskListId) {
+      await syncListWithGoogle(taskListId, 'tasks');
     }
     
   } catch (error) {
@@ -1301,10 +1321,10 @@ app.post('/api/google/sync', async (req, res) => {
           deleted: 0
         };
 
-    const taskList = await db.get("SELECT id FROM shopping_lists WHERE type = 'tasks' LIMIT 1");
+    const taskListId = await getSyncedListId('tasks');
     let tasksResult = null;
-    if (taskList?.id) {
-      tasksResult = await syncListWithGoogle(taskList.id, 'tasks');
+    if (taskListId) {
+      tasksResult = await syncListWithGoogle(taskListId, 'tasks');
     }
 
     const result = {
