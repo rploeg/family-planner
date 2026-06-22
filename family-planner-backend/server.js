@@ -480,15 +480,20 @@ app.get('/api/config', (req, res) => {
 app.post('/api/config', async (req, res) => {
   try {
     const config = req.body;
+    console.log('📝 /api/config POST received');
     
     // Use persisted volume path in production (Docker), otherwise use app root
     const configEnvPath = process.env.NODE_ENV === 'production'
       ? path.join(__dirname, 'data', '.env')
       : path.join(__dirname, '.env');
     
+    console.log(`   NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`   Saving to: ${configEnvPath}`);
+    
     // Ensure data directory exists
     const dataDir = path.dirname(configEnvPath);
     if (!fs.existsSync(dataDir)) {
+      console.log(`   Creating directory: ${dataDir}`);
       fs.mkdirSync(dataDir, { recursive: true });
     }
     
@@ -550,9 +555,11 @@ LOXONE_PASSWORD=${config.loxone?.password === '********' ? currentEnv.LOXONE_PAS
 `;
 
     fs.writeFileSync(configEnvPath, envContent);
+    console.log(`✓ Config saved to ${configEnvPath}`);
+    console.log(`  Loxone URL: ${config.loxone?.serverUrl || 'not set'}`);
     
     res.json({ 
-      success: true, 
+      success: true,
       message: 'Settings saved. Restart server to apply changes.',
       requiresRestart: true
     });
