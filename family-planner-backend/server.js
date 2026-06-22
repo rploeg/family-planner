@@ -13,7 +13,7 @@ console.log(`[Startup] File exists: ${fs.existsSync(envPath)}`);
 if (fs.existsSync(envPath)) {
   const content = fs.readFileSync(envPath, 'utf8');
   console.log(`[Startup] .env file size: ${content.length} bytes`);
-  console.log(`[Startup] .env first 500 chars:\n${content.substring(0, 500)}`);
+  console.log(`[Startup] .env FULL CONTENT:\n${content}`);
 }
 
 require('dotenv').config({ path: envPath });
