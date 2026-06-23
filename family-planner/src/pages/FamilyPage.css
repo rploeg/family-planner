@@ -110,6 +110,7 @@
 .form-inline input,
 .form-inline select,
 .form-inline button,
+.panel-list input,
 .panel-list textarea,
 .section textarea {
   background: rgba(255, 255, 255, 0.06);
@@ -186,6 +187,29 @@
 
 .command-center-mode .kpi-value {
   font-size: 30px;
+}
+
+.emergency-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.call-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #8BC34A 0%, #689F38 100%);
+  color: #0a0a0a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.call-btn.call-emergency {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff3b30 100%);
+  color: #fff;
 }
 
 @media (max-width: 1024px) {

@@ -1177,6 +1177,12 @@ app.get('/api/emergency-card', async (req, res) => {
     const card = await db.get('SELECT * FROM emergency_cards WHERE id = ?', ['primary']);
     res.json(card || {
       id: 'primary',
+      parentName: '',
+      parentPhone: '',
+      backupContactName: '',
+      backupContactPhone: '',
+      homeAddress: '',
+      fireInstructions: '',
       householdDoctor: '',
       allergies: '',
       medications: '',
@@ -1190,7 +1196,20 @@ app.get('/api/emergency-card', async (req, res) => {
 
 app.put('/api/emergency-card', async (req, res) => {
   try {
-    const { pin, householdDoctor, allergies, medications, emergencyContacts, notes } = req.body;
+    const {
+      pin,
+      parentName,
+      parentPhone,
+      backupContactName,
+      backupContactPhone,
+      homeAddress,
+      fireInstructions,
+      householdDoctor,
+      allergies,
+      medications,
+      emergencyContacts,
+      notes
+    } = req.body;
     const ok = await verifyParentPin(pin);
     if (!ok) {
       return res.status(401).json({ error: 'Invalid PIN' });
@@ -1198,16 +1217,49 @@ app.put('/api/emergency-card', async (req, res) => {
 
     const now = new Date().toISOString();
     await db.run(
-      `INSERT INTO emergency_cards (id, householdDoctor, allergies, medications, emergencyContacts, notes, updatedAt)
-       VALUES ('primary', ?, ?, ?, ?, ?, ?)
+      `INSERT INTO emergency_cards (
+         id,
+         parentName,
+         parentPhone,
+         backupContactName,
+         backupContactPhone,
+         homeAddress,
+         fireInstructions,
+         householdDoctor,
+         allergies,
+         medications,
+         emergencyContacts,
+         notes,
+         updatedAt
+       )
+       VALUES ('primary', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
+         parentName = excluded.parentName,
+         parentPhone = excluded.parentPhone,
+         backupContactName = excluded.backupContactName,
+         backupContactPhone = excluded.backupContactPhone,
+         homeAddress = excluded.homeAddress,
+         fireInstructions = excluded.fireInstructions,
          householdDoctor = excluded.householdDoctor,
          allergies = excluded.allergies,
          medications = excluded.medications,
          emergencyContacts = excluded.emergencyContacts,
          notes = excluded.notes,
          updatedAt = excluded.updatedAt`,
-      [householdDoctor || '', allergies || '', medications || '', emergencyContacts || '', notes || '', now]
+      [
+        parentName || '',
+        parentPhone || '',
+        backupContactName || '',
+        backupContactPhone || '',
+        homeAddress || '',
+        fireInstructions || '',
+        householdDoctor || '',
+        allergies || '',
+        medications || '',
+        emergencyContacts || '',
+        notes || '',
+        now
+      ]
     );
 
     res.json({ success: true });

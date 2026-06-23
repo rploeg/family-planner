@@ -3,6 +3,12 @@ import api from '../services/api';
 import './FamilyPage.css';
 
 const FamilyPage = () => {
+  const phoneToTelHref = (phone) => {
+    if (!phone) return null;
+    const normalized = String(phone).replace(/[^\d+]/g, '');
+    return normalized ? `tel:${normalized}` : null;
+  };
+
   const [tab, setTab] = useState('command');
   const [members, setMembers] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -159,7 +165,20 @@ const FamilyPage = () => {
 
   const unlockEmergencyCard = async () => {
     const card = await api.getEmergencyCard(emergencyPin);
-    setEmergencyCard(card);
+    setEmergencyCard({
+      parentName: '',
+      parentPhone: '',
+      backupContactName: '',
+      backupContactPhone: '',
+      homeAddress: '',
+      fireInstructions: '',
+      householdDoctor: '',
+      allergies: '',
+      medications: '',
+      emergencyContacts: '',
+      notes: '',
+      ...card
+    });
   };
 
   const setupEmergencyPin = async () => {
@@ -424,6 +443,51 @@ const FamilyPage = () => {
 
           {emergencyCard && (
             <div className="panel-list">
+              <div className="emergency-actions">
+                <a className="call-btn call-emergency" href="tel:112">📞 Bel 112</a>
+                {phoneToTelHref(emergencyCard.parentPhone) && (
+                  <a className="call-btn" href={phoneToTelHref(emergencyCard.parentPhone)}>
+                    📱 Bel {emergencyCard.parentName || 'ouder'}
+                  </a>
+                )}
+                {phoneToTelHref(emergencyCard.backupContactPhone) && (
+                  <a className="call-btn" href={phoneToTelHref(emergencyCard.backupContactPhone)}>
+                    📱 Bel {emergencyCard.backupContactName || 'backup'}
+                  </a>
+                )}
+              </div>
+              <input
+                value={emergencyCard.parentName || ''}
+                onChange={(e) => setEmergencyCard({ ...emergencyCard, parentName: e.target.value })}
+                placeholder="Naam ouder"
+              />
+              <input
+                value={emergencyCard.parentPhone || ''}
+                onChange={(e) => setEmergencyCard({ ...emergencyCard, parentPhone: e.target.value })}
+                placeholder="Telefoon ouder"
+              />
+              <input
+                value={emergencyCard.backupContactName || ''}
+                onChange={(e) => setEmergencyCard({ ...emergencyCard, backupContactName: e.target.value })}
+                placeholder="Naam backup contact"
+              />
+              <input
+                value={emergencyCard.backupContactPhone || ''}
+                onChange={(e) => setEmergencyCard({ ...emergencyCard, backupContactPhone: e.target.value })}
+                placeholder="Telefoon backup contact"
+              />
+              <textarea
+                rows={2}
+                value={emergencyCard.homeAddress || ''}
+                onChange={(e) => setEmergencyCard({ ...emergencyCard, homeAddress: e.target.value })}
+                placeholder="Thuisadres"
+              />
+              <textarea
+                rows={4}
+                value={emergencyCard.fireInstructions || ''}
+                onChange={(e) => setEmergencyCard({ ...emergencyCard, fireInstructions: e.target.value })}
+                placeholder="Wat te doen bij brand (bv: verlaat huis, verzamelpunt, bel 112, bel ouders)"
+              />
               <textarea
                 rows={2}
                 value={emergencyCard.householdDoctor || ''}

@@ -291,6 +291,12 @@ class DatabaseManager {
       this.db.run(`
         CREATE TABLE IF NOT EXISTS emergency_cards (
           id TEXT PRIMARY KEY,
+          parentName TEXT,
+          parentPhone TEXT,
+          backupContactName TEXT,
+          backupContactPhone TEXT,
+          homeAddress TEXT,
+          fireInstructions TEXT,
           householdDoctor TEXT,
           allergies TEXT,
           medications TEXT,
@@ -299,6 +305,55 @@ class DatabaseManager {
           updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // Add structured emergency fields for one-tap calling and incident guidance
+      this.db.run(`
+        ALTER TABLE emergency_cards ADD COLUMN parentName TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding parentName column to emergency_cards:', err.message);
+        }
+      });
+
+      this.db.run(`
+        ALTER TABLE emergency_cards ADD COLUMN parentPhone TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding parentPhone column to emergency_cards:', err.message);
+        }
+      });
+
+      this.db.run(`
+        ALTER TABLE emergency_cards ADD COLUMN backupContactName TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding backupContactName column to emergency_cards:', err.message);
+        }
+      });
+
+      this.db.run(`
+        ALTER TABLE emergency_cards ADD COLUMN backupContactPhone TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding backupContactPhone column to emergency_cards:', err.message);
+        }
+      });
+
+      this.db.run(`
+        ALTER TABLE emergency_cards ADD COLUMN homeAddress TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding homeAddress column to emergency_cards:', err.message);
+        }
+      });
+
+      this.db.run(`
+        ALTER TABLE emergency_cards ADD COLUMN fireInstructions TEXT
+      `, (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error('Error adding fireInstructions column to emergency_cards:', err.message);
+        }
+      });
 
       // Family meeting notes and decisions/actions
       this.db.run(`
