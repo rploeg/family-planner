@@ -32,6 +32,13 @@ const SettingsPage = () => {
   const [message, setMessage] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  
+  // Family members state
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState('child');
+  const [newMemberAvatar, setNewMemberAvatar] = useState('👧');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -47,6 +54,7 @@ const SettingsPage = () => {
   useEffect(() => {
     loadConfig();
     loadEmergencyCard();
+    loadFamilyMembers();
   }, []);
 
   const loadEmergencyCard = async () => {
@@ -68,6 +76,67 @@ const SettingsPage = () => {
       }
     } catch (error) {
       console.error('Error loading emergency card:', error);
+    }
+  };
+
+  const loadFamilyMembers = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/family-members`);
+      if (response.ok) {
+        const members = await response.json();
+        setFamilyMembers(members);
+      }
+    } catch (error) {
+      console.error('Error loading family members:', error);
+    }
+  };
+
+  const addFamilyMember = async () => {
+    if (!newMemberName.trim()) {
+      setMessage({ type: 'error', text: 'Vul een naam in' });
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/family-members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newMemberName,
+          role: newMemberRole,
+          avatar: newMemberAvatar
+        })
+      });
+      
+      if (response.ok) {
+        setNewMemberName('');
+        setNewMemberRole('child');
+        setNewMemberAvatar('👧');
+        setShowAddMember(false);
+        setMessage({ type: 'success', text: 'Familie lid toegevoegd' });
+        await loadFamilyMembers();
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Fout bij toevoegen lid' });
+      console.error('Error adding family member:', error);
+    }
+  };
+
+  const deleteFamilyMember = async (memberId) => {
+    if (!window.confirm('Weet je zeker dat je dit lid wilt verwijderen?')) return;
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/family-members/${memberId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Familie lid verwijderd' });
+        await loadFamilyMembers();
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Fout bij verwijderen lid' });
+      console.error('Error deleting family member:', error);
     }
   };
 
@@ -577,6 +646,87 @@ const SettingsPage = () => {
                 disabled={!editMode}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Family Members Card */}
+        <div className="settings-card">
+          <div className="card-header">
+            <span className="card-icon">👨‍👩‍👧‍👦</span>
+            <h2>Gezinsleden</h2>
+          </div>
+          <div className="card-content">
+            <p className="card-description">Beheer de kinderen en gezinsleden.</p>
+            
+            {familyMembers.length > 0 && (
+              <div className="members-list">
+                {familyMembers.map(member => (
+                  <div key={member.id} className="member-item">
+                    <span className="member-avatar">{member.avatar || '👤'}</span>
+                    <div className="member-info">
+                      <div className="member-name">{member.name}</div>
+                      <div className="member-role">{member.role === 'child' ? '👧 Kind' : '👨 Ouder'}</div>
+                    </div>
+                    {member.role === 'child' && (
+                      <button 
+                        className="delete-btn"
+                        onClick={() => deleteFamilyMember(member.id)}
+                        title="Verwijderen"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {!showAddMember ? (
+              <button 
+                className="action-button add"
+                onClick={() => setShowAddMember(true)}
+              >
+                ➕ Kind toevoegen
+              </button>
+            ) : (
+              <div className="add-member-form">
+                <input 
+                  type="text" 
+                  value={newMemberName}
+                  onChange={(e) => setNewMemberName(e.target.value)}
+                  placeholder="Naam"
+                  autoFocus
+                />
+                <select 
+                  value={newMemberRole}
+                  onChange={(e) => setNewMemberRole(e.target.value)}
+                >
+                  <option value="child">👧 Kind</option>
+                  <option value="parent">👨 Ouder</option>
+                </select>
+                <input 
+                  type="text" 
+                  value={newMemberAvatar}
+                  onChange={(e) => setNewMemberAvatar(e.target.value)}
+                  placeholder="Emoji"
+                  maxLength="2"
+                />
+                <div className="form-buttons">
+                  <button 
+                    className="action-button save"
+                    onClick={addFamilyMember}
+                  >
+                    ✓ Toevoegen
+                  </button>
+                  <button 
+                    className="action-button cancel"
+                    onClick={() => setShowAddMember(false)}
+                  >
+                    ✕ Annuleren
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

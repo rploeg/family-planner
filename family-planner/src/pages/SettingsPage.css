@@ -484,6 +484,170 @@
   margin-top: 12px;
 }
 
+/* Family Members */
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.member-avatar {
+  font-size: 24px;
+  min-width: 28px;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-name {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.member-role {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.delete-btn {
+  padding: 6px 10px;
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+}
+
+.action-button.add {
+  background: rgba(139, 195, 74, 0.2);
+  color: #8BC34A;
+  border: 1px solid rgba(139, 195, 74, 0.3);
+}
+
+.action-button.add:hover {
+  background: rgba(139, 195, 74, 0.3);
+}
+
+.action-button.save {
+  background: rgba(139, 195, 74, 0.2);
+  color: #8BC34A;
+  border: 1px solid rgba(139, 195, 74, 0.3);
+}
+
+.action-button.save:hover {
+  background: rgba(139, 195, 74, 0.3);
+}
+
+.action-button.cancel {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.action-button.cancel:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.add-member-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 2px dashed rgba(139, 195, 74, 0.3);
+  border-radius: 12px;
+  background: rgba(139, 195, 74, 0.05);
+}
+
+.add-member-form input,
+.add-member-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 14px;
+  color: white;
+  background: rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.add-member-form input:focus,
+.add-member-form select:focus {
+  outline: none;
+  border-color: #8BC34A;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
+}
+
+.add-member-form select {
+  cursor: pointer;
+}
+
+.add-member-form input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.form-buttons .action-button {
+  flex: 1;
+  margin-top: 0;
+}
+
+/* Form Groups with Textarea */
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 14px;
+  color: white;
+  background: rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #8BC34A;
+  box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
+}
+
+.form-group textarea:disabled {
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+}
+
+.form-group textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
 /* Responsive */
 @media (min-width: 600px) {
   .settings-grid {
