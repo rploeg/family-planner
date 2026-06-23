@@ -19,10 +19,6 @@ const FamilyPage = () => {
   const [transactions, setTransactions] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [emergencyCard, setEmergencyCard] = useState(null);
-  const [emergencyPin, setEmergencyPin] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [hasEmergencyPin, setHasEmergencyPin] = useState(false);
-  const [isCommandCenterMode, setIsCommandCenterMode] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
 
   const [newRoutineTitle, setNewRoutineTitle] = useState('');
@@ -60,7 +56,7 @@ const FamilyPage = () => {
   }, [members]);
 
   const loadAll = async () => {
-    const [m, s, r, h, c, w, tx, mt, ecStatus] = await Promise.all([
+    const [m, s, r, h, c, w, tx, mt, card] = await Promise.all([
       api.getFamilyMembers(),
       api.getCommandCenterSummary(),
       api.getRoutineProgress(),
@@ -69,7 +65,7 @@ const FamilyPage = () => {
       api.getTokenWallets(),
       api.getTokenTransactions(),
       api.getFamilyMeetings(),
-      api.getEmergencyCardStatus()
+      api.getEmergencyCard('') // Load public emergency card info (no PIN needed for reading)
     ]);
 
     setMembers(m);
@@ -80,7 +76,7 @@ const FamilyPage = () => {
     setWallets(w);
     setTransactions(tx);
     setMeetings(mt);
-    setHasEmergencyPin(ecStatus.hasPin);
+    setEmergencyCard(card);
 
     if (!newRoutineChildId && m[0]?.id) setNewRoutineChildId(m[0].id);
     if (!newHomeworkChildId && m[0]?.id) setNewHomeworkChildId(m[0].id);
@@ -161,35 +157,6 @@ const FamilyPage = () => {
       delta: Number(tokenDelta || 0),
       reason: tokenReason
     });
-    await loadAll();
-  };
-
-  const unlockEmergencyCard = async () => {
-    const card = await api.getEmergencyCard(emergencyPin);
-    setEmergencyCard({
-      parentName: '',
-      parentPhone: '',
-      backupContactName: '',
-      backupContactPhone: '',
-      homeAddress: '',
-      fireInstructions: '',
-      householdDoctor: '',
-      allergies: '',
-      medications: '',
-      emergencyContacts: '',
-      notes: '',
-      ...card
-    });
-  };
-
-  const setupEmergencyPin = async () => {
-    await api.setEmergencyPin({ pin: newPin });
-    setNewPin('');
-    await loadAll();
-  };
-
-  const saveEmergencyCard = async () => {
-    await api.updateEmergencyCard({ ...emergencyCard, pin: emergencyPin });
     await loadAll();
   };
 
@@ -426,108 +393,14 @@ const FamilyPage = () => {
 
       {tab === 'emergency' && (
         <section className="section">
-          <h3 className="section-title">Noodkaart (alleen ouders)</h3>
+          <h3 className="section-title">Noodmodus</h3>
+          <p className="section-description">Druk op de knop hieronder in een noodsituatie. Alle contact-informatie kan ingesteld worden in Instellingen.</p>
 
           <div className="form-inline">
             <button className="emergency-mode-toggle" onClick={() => setIsEmergencyMode(true)}>
               🚨 Start NOODMODUS
             </button>
           </div>
-
-          {!hasEmergencyPin && (
-            <div className="form-inline">
-              <input type="password" value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="Stel ouder-PIN in" />
-              <button onClick={setupEmergencyPin}>PIN instellen</button>
-            </div>
-          )}
-
-          {hasEmergencyPin && !emergencyCard && (
-            <div className="form-inline">
-              <input type="password" value={emergencyPin} onChange={(e) => setEmergencyPin(e.target.value)} placeholder="Voer ouder-PIN in" />
-              <button onClick={unlockEmergencyCard}>Kaart ontgrendelen</button>
-            </div>
-          )}
-
-          {emergencyCard && (
-            <div className="panel-list">
-              <div className="emergency-actions">
-                <a className="call-btn call-emergency" href="tel:112">📞 Bel 112</a>
-                {phoneToTelHref(emergencyCard.parentPhone) && (
-                  <a className="call-btn" href={phoneToTelHref(emergencyCard.parentPhone)}>
-                    📱 Bel {emergencyCard.parentName || 'ouder'}
-                  </a>
-                )}
-                {phoneToTelHref(emergencyCard.backupContactPhone) && (
-                  <a className="call-btn" href={phoneToTelHref(emergencyCard.backupContactPhone)}>
-                    📱 Bel {emergencyCard.backupContactName || 'backup'}
-                  </a>
-                )}
-              </div>
-              <input
-                value={emergencyCard.parentName || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, parentName: e.target.value })}
-                placeholder="Naam ouder"
-              />
-              <input
-                value={emergencyCard.parentPhone || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, parentPhone: e.target.value })}
-                placeholder="Telefoon ouder"
-              />
-              <input
-                value={emergencyCard.backupContactName || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, backupContactName: e.target.value })}
-                placeholder="Naam backup contact"
-              />
-              <input
-                value={emergencyCard.backupContactPhone || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, backupContactPhone: e.target.value })}
-                placeholder="Telefoon backup contact"
-              />
-              <textarea
-                rows={2}
-                value={emergencyCard.homeAddress || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, homeAddress: e.target.value })}
-                placeholder="Thuisadres"
-              />
-              <textarea
-                rows={4}
-                value={emergencyCard.fireInstructions || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, fireInstructions: e.target.value })}
-                placeholder="Wat te doen bij brand (bv: verlaat huis, verzamelpunt, bel 112, bel ouders)"
-              />
-              <textarea
-                rows={2}
-                value={emergencyCard.householdDoctor || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, householdDoctor: e.target.value })}
-                placeholder="Huisarts"
-              />
-              <textarea
-                rows={3}
-                value={emergencyCard.allergies || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, allergies: e.target.value })}
-                placeholder="Allergieën"
-              />
-              <textarea
-                rows={3}
-                value={emergencyCard.medications || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, medications: e.target.value })}
-                placeholder="Medicatie"
-              />
-              <textarea
-                rows={3}
-                value={emergencyCard.emergencyContacts || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, emergencyContacts: e.target.value })}
-                placeholder="Noodcontacten"
-              />
-              <textarea
-                rows={3}
-                value={emergencyCard.notes || ''}
-                onChange={(e) => setEmergencyCard({ ...emergencyCard, notes: e.target.value })}
-                placeholder="Notities"
-              />
-              <button onClick={saveEmergencyCard}>Noodkaart opslaan</button>
-            </div>
-          )}
         </section>
       )}
 

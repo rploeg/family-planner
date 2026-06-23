@@ -1169,9 +1169,13 @@ app.post('/api/emergency-card/pin', async (req, res) => {
 app.get('/api/emergency-card', async (req, res) => {
   try {
     const pin = req.query.pin;
-    const ok = await verifyParentPin(pin);
-    if (!ok) {
-      return res.status(401).json({ error: 'Invalid PIN' });
+    
+    // If PIN is provided, verify it (for Settings editing)
+    if (pin) {
+      const ok = await verifyParentPin(pin);
+      if (!ok) {
+        return res.status(401).json({ error: 'Invalid PIN' });
+      }
     }
 
     const card = await db.get('SELECT * FROM emergency_cards WHERE id = ?', ['primary']);

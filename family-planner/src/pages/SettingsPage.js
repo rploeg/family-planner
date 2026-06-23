@@ -40,12 +40,36 @@ const SettingsPage = () => {
     caldav: { serverUrl: '', username: '', password: '', syncInterval: '' },
     googleTasks: { clientId: '', clientSecret: '', redirectUri: '', taskListName: '', syncInterval: '' },
     googleCalendar: { enabled: false, calendarId: 'primary' },
-    loxone: { serverUrl: '', username: '', password: '' }
+    loxone: { serverUrl: '', username: '', password: '' },
+    emergencyCard: { parentName: '', parentPhone: '', backupContactName: '', backupContactPhone: '', homeAddress: '', fireInstructions: '' }
   });
 
   useEffect(() => {
     loadConfig();
+    loadEmergencyCard();
   }, []);
+
+  const loadEmergencyCard = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/emergency-card`);
+      if (response.ok) {
+        const card = await response.json();
+        setFormData(prev => ({
+          ...prev,
+          emergencyCard: {
+            parentName: card.parentName || '',
+            parentPhone: card.parentPhone || '',
+            backupContactName: card.backupContactName || '',
+            backupContactPhone: card.backupContactPhone || '',
+            homeAddress: card.homeAddress || '',
+            fireInstructions: card.fireInstructions || ''
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading emergency card:', error);
+    }
+  };
 
   const loadConfig = async () => {
     try {
@@ -53,7 +77,8 @@ const SettingsPage = () => {
       if (response.ok) {
         const data = await response.json();
         setConfig(data);
-        setFormData({
+        setFormData(prev => ({
+          ...prev,
           server: {
             port: data.server?.port || '3002',
             nodeEnv: data.server?.nodeEnv || 'development',
@@ -83,7 +108,17 @@ const SettingsPage = () => {
             username: data.loxone?.username || '',
             password: data.loxone?.hasPassword ? '********' : ''
           }
+        }));
+      
+      // Save emergency card
+      if (formData.emergencyCard) {
+        await fetch(`${API_BASE}/api/emergency-card`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData.emergencyCard)
         });
+      }
+      
       }
     } catch (error) {
       console.error('Error loading config:', error);
@@ -540,6 +575,72 @@ const SettingsPage = () => {
                 value={formData.loxone.password}
                 onChange={(e) => handleInputChange('loxone', 'password', e.target.value)}
                 disabled={!editMode}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Emergency Card Settings */}
+        <div className="settings-card">
+          <div className="card-header">
+            <span className="card-icon">🚨</span>
+            <h2>Noodkaart</h2>
+          </div>
+          <div className="card-content">
+            <p className="card-description">Stel nood-contactnummers en brand-instructies in voor kinderen.</p>
+            <div className="form-group">
+              <label>Naam ouder</label>
+              <input 
+                type="text" 
+                value={formData.emergencyCard?.parentName || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyCard: { ...prev.emergencyCard, parentName: e.target.value } }))}
+                disabled={!editMode}
+              />
+            </div>
+            <div className="form-group">
+              <label>Telefoon ouder</label>
+              <input 
+                type="tel" 
+                value={formData.emergencyCard?.parentPhone || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyCard: { ...prev.emergencyCard, parentPhone: e.target.value } }))}
+                disabled={!editMode}
+              />
+            </div>
+            <div className="form-group">
+              <label>Backup contact naam</label>
+              <input 
+                type="text" 
+                value={formData.emergencyCard?.backupContactName || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyCard: { ...prev.emergencyCard, backupContactName: e.target.value } }))}
+                disabled={!editMode}
+              />
+            </div>
+            <div className="form-group">
+              <label>Backup contact telefoon</label>
+              <input 
+                type="tel" 
+                value={formData.emergencyCard?.backupContactPhone || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyCard: { ...prev.emergencyCard, backupContactPhone: e.target.value } }))}
+                disabled={!editMode}
+              />
+            </div>
+            <div className="form-group">
+              <label>Thuisadres</label>
+              <textarea 
+                rows="2"
+                value={formData.emergencyCard?.homeAddress || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyCard: { ...prev.emergencyCard, homeAddress: e.target.value } }))}
+                disabled={!editMode}
+              />
+            </div>
+            <div className="form-group">
+              <label>Wat te doen bij brand</label>
+              <textarea 
+                rows="4"
+                value={formData.emergencyCard?.fireInstructions || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, emergencyCard: { ...prev.emergencyCard, fireInstructions: e.target.value } }))}
+                disabled={!editMode}
+                placeholder="1. Blijf rustig\n2. Verlaat direct het huis\n3. Ga naar verzamelpunt\n4. Bel 112\n5. Bel mama of backup"
               />
             </div>
           </div>
