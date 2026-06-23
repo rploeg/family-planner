@@ -19,6 +19,7 @@ const FamilyPage = () => {
   const [transactions, setTransactions] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [emergencyCard, setEmergencyCard] = useState(null);
+  const [isCommandCenterMode, setIsCommandCenterMode] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
 
   const [newRoutineTitle, setNewRoutineTitle] = useState('');
