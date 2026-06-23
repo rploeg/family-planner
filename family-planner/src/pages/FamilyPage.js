@@ -282,18 +282,44 @@ const FamilyPage = () => {
           </div>
           <textarea value={newRoutineSteps} onChange={(e) => setNewRoutineSteps(e.target.value)} rows={3} placeholder="Een stap per regel" />
 
-          <div className="panel-list">
-            {routines.map((r) => (
-              <div className="panel" key={r.id}>
-                <h4>{r.title} {r.childId ? `• ${memberById[r.childId]?.name || 'Kind'}` : ''}</h4>
-                {(r.steps || []).map((s) => (
-                  <label key={s.id} className="check-row">
-                    <input type="checkbox" checked={!!s.completed} onChange={() => toggleRoutineStep(r.id, s)} />
-                    <span>{s.text}</span>
-                  </label>
-                ))}
-              </div>
-            ))}
+          <div className="routines-list">
+            {routines.map((r) => {
+              const totalSteps = (r.steps || []).length;
+              const completedSteps = (r.steps || []).filter(s => s.completed).length;
+              const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+              const isRoutineComplete = completedSteps === totalSteps && totalSteps > 0;
+              
+              return (
+                <div className={`routine-card ${isRoutineComplete ? 'complete' : ''}`} key={r.id}>
+                  <div className="routine-header">
+                    <div className="routine-title-group">
+                      <h4>{r.title}</h4>
+                      {r.childId && <span className="routine-child">👤 {memberById[r.childId]?.name || 'Kind'}</span>}
+                    </div>
+                    <div className="routine-progress">
+                      <span className="progress-text">{completedSteps}/{totalSteps}</span>
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="routine-steps">
+                    {(r.steps || []).map((s) => (
+                      <label key={s.id} className={`step-row ${s.completed ? 'completed' : ''}`}>
+                        <input 
+                          type="checkbox" 
+                          checked={!!s.completed} 
+                          onChange={() => toggleRoutineStep(r.id, s)}
+                          className="step-checkbox"
+                        />
+                        <span className="step-text">{s.text}</span>
+                        {s.completed && <span className="step-check">✓</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
