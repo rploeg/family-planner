@@ -15,8 +15,6 @@ const FamilyPage = () => {
   const [routines, setRoutines] = useState([]);
   const [homework, setHomework] = useState([]);
   const [chores, setChores] = useState([]);
-  const [wallets, setWallets] = useState([]);
-  const [transactions, setTransactions] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [emergencyCard, setEmergencyCard] = useState(null);
   const [isCommandCenterMode, setIsCommandCenterMode] = useState(false);
@@ -36,10 +34,6 @@ const FamilyPage = () => {
   const [newChorePoints, setNewChorePoints] = useState(2);
   const [newChoreDueDate, setNewChoreDueDate] = useState('');
 
-  const [tokenChildId, setTokenChildId] = useState('');
-  const [tokenDelta, setTokenDelta] = useState(1);
-  const [tokenReason, setTokenReason] = useState('Bonus');
-
   const [newMeetingTitle, setNewMeetingTitle] = useState('Weekoverleg');
   const [newMeetingDate, setNewMeetingDate] = useState(new Date().toISOString().slice(0, 10));
   const [newMeetingNotes, setNewMeetingNotes] = useState('');
@@ -57,14 +51,12 @@ const FamilyPage = () => {
   }, [members]);
 
   const loadAll = async () => {
-    const [m, s, r, h, c, w, tx, mt, card] = await Promise.all([
+    const [m, s, r, h, c, mt, card] = await Promise.all([
       api.getFamilyMembers(),
       api.getCommandCenterSummary(),
       api.getRoutineProgress(),
       api.getHomework(),
       api.getChores(),
-      api.getTokenWallets(),
-      api.getTokenTransactions(),
       api.getFamilyMeetings(),
       api.getEmergencyCard('') // Load public emergency card info (no PIN needed for reading)
     ]);
@@ -74,15 +66,12 @@ const FamilyPage = () => {
     setRoutines(r.routines || []);
     setHomework(h);
     setChores(c);
-    setWallets(w);
-    setTransactions(tx);
     setMeetings(mt);
     setEmergencyCard(card);
 
     if (!newRoutineChildId && m[0]?.id) setNewRoutineChildId(m[0].id);
     if (!newHomeworkChildId && m[0]?.id) setNewHomeworkChildId(m[0].id);
     if (!newChoreChildId && m[0]?.id) setNewChoreChildId(m[0].id);
-    if (!tokenChildId && m[0]?.id) setTokenChildId(m[0].id);
     if (!newActionOwner && m[0]?.id) setNewActionOwner(m[0].id);
   };
 
@@ -152,15 +141,6 @@ const FamilyPage = () => {
     await loadAll();
   };
 
-  const adjustTokens = async () => {
-    await api.adjustTokens({
-      childId: tokenChildId,
-      delta: Number(tokenDelta || 0),
-      reason: tokenReason
-    });
-    await loadAll();
-  };
-
   const addMeeting = async () => {
     await api.createFamilyMeeting({
       meetingDate: newMeetingDate,
@@ -207,7 +187,6 @@ const FamilyPage = () => {
           ['routines', 'Routines'],
           ['homework', 'Huiswerk'],
           ['chores', 'Taken'],
-          ['tokens', 'Schermtijd'],
           ['emergency', 'Noodkaart'],
           ['meetings', 'Overleggen']
         ].map(([value, label]) => (
@@ -384,40 +363,6 @@ const FamilyPage = () => {
         </section>
       )}
 
-      {tab === 'tokens' && (
-        <section className="section">
-          <h3 className="section-title">Schermtijd tokens</h3>
-          <div className="kpi-grid">
-            {wallets.map((w) => (
-              <div className="kpi-card" key={w.childId}>
-                <div className="kpi-label">{memberById[w.childId]?.name || w.childId}</div>
-                <div className="kpi-value">{w.balance}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="form-inline">
-            <select value={tokenChildId} onChange={(e) => setTokenChildId(e.target.value)}>
-              <option value="">Kies kind</option>
-              {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-            <input type="number" value={tokenDelta} onChange={(e) => setTokenDelta(e.target.value)} />
-            <input value={tokenReason} onChange={(e) => setTokenReason(e.target.value)} placeholder="Reden" />
-            <button onClick={adjustTokens}>Aanpassen</button>
-          </div>
-
-          <div className="panel">
-            <h4>Recente transacties</h4>
-            {transactions.slice(0, 12).map((tx) => (
-              <div className="row-item" key={tx.id}>
-                <span>{memberById[tx.childId]?.name || tx.childId} • {tx.reason}</span>
-                <span className={tx.delta >= 0 ? 'pos' : 'neg'}>{tx.delta}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {tab === 'emergency' && (
         <section className="section">
           <h3 className="section-title">Noodmodus</h3>
@@ -493,19 +438,58 @@ const FamilyPage = () => {
             <button onClick={addMeetingAction}>Actie toevoegen</button>
           </div>
 
-          <div className="panel-list">
-            {meetings.map((m) => (
-              <div className="panel" key={m.id}>
-                <h4>{m.title} • {m.meetingDate}</h4>
-                {m.notes && <p className="muted">{m.notes}</p>}
-                {(m.actions || []).map((a) => (
-                  <div className="row-item" key={a.id}>
-                    <span>{a.text} • {memberById[a.owner]?.name || 'onbekend'} • {a.dueDate || 'geen deadline'}</span>
-                    <button onClick={() => toggleMeetingAction(a)}>{a.status === 'done' ? 'Heropen' : 'Klaar'}</button>
+          <div className="meetings-list">
+            {meetings.map((m) => {
+              const totalActions = (m.actions || []).length;
+              const completedActions = (m.actions || []).filter(a => a.status === 'done').length;
+              const progress = totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0;
+              
+              return (
+                <div className="meeting-card" key={m.id}>
+                  <div className="meeting-header">
+                    <div className="meeting-title-group">
+                      <h4>{m.title}</h4>
+                      <span className="meeting-date">📅 {m.meetingDate}</span>
+                    </div>
+                    {totalActions > 0 && (
+                      <div className="meeting-progress">
+                        <span className="progress-text">{completedActions}/{totalActions}</span>
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            ))}
+                  
+                  {m.notes && <div className="meeting-notes">{m.notes}</div>}
+                  
+                  {totalActions > 0 && (
+                    <div className="actions-list">
+                      {(m.actions || []).map((a) => (
+                        <div key={a.id} className={`action-item ${a.status === 'done' ? 'done' : ''}`}>
+                          <div className="action-content">
+                            <span className="action-text">{a.text}</span>
+                            <div className="action-meta">
+                              <span className="action-owner">👤 {memberById[a.owner]?.name || 'onbekend'}</span>
+                              {a.dueDate && <span className="action-date">📅 {a.dueDate}</span>}
+                            </div>
+                          </div>
+                          <button 
+                            className={`action-toggle ${a.status === 'done' ? 'done' : ''}`}
+                            onClick={() => toggleMeetingAction(a)}
+                            title={a.status === 'done' ? 'Mark as open' : 'Mark as done'}
+                          >
+                            {a.status === 'done' ? '✓' : '○'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {totalActions === 0 && <p className="no-actions">Geen acties voor deze overleg</p>}
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
