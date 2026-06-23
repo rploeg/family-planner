@@ -47,6 +47,130 @@
   grid-column: 1 / -1;
 }
 
+.alerts-section {
+  grid-column: 1 / -1;
+  background: rgba(139, 195, 74, 0.1);
+  border: 1px solid rgba(139, 195, 74, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.alerts-section.homework-alerts {
+  background: rgba(100, 150, 200, 0.1);
+  border-color: rgba(100, 150, 200, 0.2);
+}
+
+.alerts-section.routines-alerts {
+  background: rgba(156, 39, 176, 0.1);
+  border-color: rgba(156, 39, 176, 0.2);
+}
+
+.alerts-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.alerts-icon {
+  font-size: 20px;
+}
+
+.alerts-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #8BC34A;
+}
+
+.homework-alerts .alerts-header h3 {
+  color: #6496c8;
+}
+
+.routines-alerts .alerts-header h3 {
+  color: #9c27b0;
+}
+
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alert-item {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.alert-subject {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.alert-title {
+  color: white;
+  font-weight: 500;
+  margin: 2px 0;
+}
+
+.alert-routine {
+  color: rgba(156, 39, 176, 0.8);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.alert-step {
+  color: white;
+  font-weight: 500;
+  margin: 2px 0;
+}
+
+.alert-child {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* Homework preview in day columns */
+.homework-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.homework-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(100, 150, 200, 0.1);
+  border-left: 3px solid rgba(100, 150, 200, 0.5);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.homework-preview-icon {
+  font-size: 14px;
+  min-width: 16px;
+}
+
+.homework-preview-title {
+  flex: 1;
+  color: white;
+  font-weight: 500;
+}
+
+.homework-preview-subject {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+}
+
 .loxone-live-section {
   grid-column: 1 / -1;
   margin-top: 1.5rem;

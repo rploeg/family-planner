@@ -20,6 +20,8 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
   const [lightsData, setLightsData] = useState(null);
   const [prevEnergyData, setPrevEnergyData] = useState(null);
   const [tasksWithDueDate, setTasksWithDueDate] = useState([]);
+  const [homework, setHomework] = useState([]);
+  const [routines, setRoutines] = useState([]);
   const todayEvents = getTodayEvents();
 
   console.log('BriefingPage received props:', {
@@ -80,6 +82,8 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
     loadWeather();
     loadLoxoneData();
     loadTasksWithDueDate();
+    loadHomework();
+    loadRoutines();
 
     // Refresh Loxone data every 60 seconds
     const loxoneInterval = setInterval(() => {
@@ -101,6 +105,25 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
       setTasksWithDueDate(tasks);
     } catch (error) {
       console.error('Failed to load tasks with due dates:', error);
+    }
+  };
+
+  const loadHomework = async () => {
+    try {
+      const items = await api.getHomework();
+      setHomework(items);
+    } catch (error) {
+      console.error('Failed to load homework:', error);
+    }
+  };
+
+  const loadRoutines = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const data = await api.getRoutineProgress(today);
+      setRoutines(data.routines || []);
+    } catch (error) {
+      console.error('Failed to load routines:', error);
     }
   };
 
@@ -344,6 +367,32 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
     return icons[type] || '🍽️';
   };
 
+  // Filter homework by date
+  const getHomeworkForDate = (dateString) => {
+    return homework.filter(h => {
+      if (!h.dueDate || h.status === 'done') return false;
+      return h.dueDate === dateString;
+    });
+  };
+
+  const getTodayHomework = () => getHomeworkForDate(getTodayDateString());
+  const getTomorrowHomework = () => getHomeworkForDate(getTomorrowDateString());
+  const getDayAfterTomorrowHomework = () => getHomeworkForDate(getDayAfterTomorrowDateString());
+  const getDay3Homework = () => getHomeworkForDate(getDay3DateString());
+
+  // Get incomplete routine steps
+  const getIncompleteRoutineSteps = () => {
+    return routines.flatMap(routine => 
+      (routine.steps || [])
+        .filter(step => !step.completed)
+        .map(step => ({
+          ...step,
+          routine: routine.title,
+          childName: routine.childId ? routine.childName : null
+        }))
+    );
+  };
+
   const getOutdoorEvents = () => {
     return todayEvents.filter(event => {
       const location = event.location?.toLowerCase() || '';
@@ -421,12 +470,50 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
           </section>
         )}
 
+        {/* Homework Alerts */}
+        {getTodayHomework().length > 0 && (
+          <section className="briefing-section alerts-section homework-alerts">
+            <div className="alerts-header">
+              <span className="alerts-icon">📚</span>
+              <h3>Huiswerk vandaag ({getTodayHomework().length})</h3>
+            </div>
+            <div className="alerts-list">
+              {getTodayHomework().map(hw => (
+                <div key={hw.id} className="alert-item homework-item">
+                  <div className="alert-subject">{hw.subject || 'Algemeen'}</div>
+                  <div className="alert-title">{hw.title}</div>
+                  <div className="alert-child">{hw.childName || 'Familie'}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Routines Alerts */}
+        {getIncompleteRoutineSteps().length > 0 && (
+          <section className="briefing-section alerts-section routines-alerts">
+            <div className="alerts-header">
+              <span className="alerts-icon">✓</span>
+              <h3>Routines vandaag ({getIncompleteRoutineSteps().length})</h3>
+            </div>
+            <div className="alerts-list">
+              {getIncompleteRoutineSteps().map((step, idx) => (
+                <div key={idx} className="alert-item routine-item">
+                  <div className="alert-routine">{step.routine}</div>
+                  <div className="alert-step">{step.text}</div>
+                  {step.childName && <div className="alert-child">{step.childName}</div>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Three Day Columns - Today, Tomorrow, Day After */}
         <div className="days-container">
           {/* Today's Events Section */}
           <section className="briefing-section events-section">
             <h3 className="section-title">
-              {t('briefing.todaysEvents')} ({todayEvents.length + todayTasks.length})
+              {t('briefing.todaysEvents')} ({todayEvents.length + todayTasks.length + getTodayHomework().length})
             </h3>
             
             {/* Today's Meals */}
@@ -453,8 +540,21 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
                 ))}
               </div>
             )}
+
+            {/* Today's Homework */}
+            {getTodayHomework().length > 0 && (
+              <div className="homework-preview">
+                {getTodayHomework().map(hw => (
+                  <div key={hw.id} className="homework-preview-item">
+                    <span className="homework-preview-icon">📚</span>
+                    <span className="homework-preview-title">{hw.title}</span>
+                    <span className="homework-preview-subject">{hw.subject}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             
-            {todayEvents.length === 0 && todayTasks.length === 0 ? (
+            {todayEvents.length === 0 && todayTasks.length === 0 && getTodayHomework().length === 0 ? (
               <p className="empty-message">{t('calendar.noEvents')}</p>
             ) : (
               <div className="briefing-events">
@@ -468,7 +568,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
           {/* Tomorrow's Events Section */}
           <section className="briefing-section events-section">
             <h3 className="section-title">
-              {i18n.language === 'nl' ? 'Morgen' : 'Tomorrow'} ({tomorrowEvents.length + tomorrowTasks.length})
+              {i18n.language === 'nl' ? 'Morgen' : 'Tomorrow'} ({tomorrowEvents.length + tomorrowTasks.length + getTomorrowHomework().length})
             </h3>
             
             {/* Tomorrow's Meals */}
@@ -495,8 +595,21 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
                 ))}
               </div>
             )}
+
+            {/* Tomorrow's Homework */}
+            {getTomorrowHomework().length > 0 && (
+              <div className="homework-preview">
+                {getTomorrowHomework().map(hw => (
+                  <div key={hw.id} className="homework-preview-item">
+                    <span className="homework-preview-icon">📚</span>
+                    <span className="homework-preview-title">{hw.title}</span>
+                    <span className="homework-preview-subject">{hw.subject}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             
-            {tomorrowEvents.length === 0 && tomorrowTasks.length === 0 ? (
+            {tomorrowEvents.length === 0 && tomorrowTasks.length === 0 && getTomorrowHomework().length === 0 ? (
               <p className="empty-message">{t('calendar.noEvents')}</p>
             ) : (
               <div className="briefing-events">
@@ -510,7 +623,7 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
           {/* Day After Tomorrow's Events Section */}
           <section className="briefing-section events-section">
             <h3 className="section-title">
-              {getDayAfterTomorrowLabel()} ({dayAfterTomorrowEvents.length + dayAfterTomorrowTasks.length})
+              {getDayAfterTomorrowLabel()} ({dayAfterTomorrowEvents.length + dayAfterTomorrowTasks.length + getDayAfterTomorrowHomework().length})
             </h3>
             
             {/* Day After Tomorrow's Meals */}
@@ -537,8 +650,21 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
                 ))}
               </div>
             )}
+
+            {/* Day After Tomorrow's Homework */}
+            {getDayAfterTomorrowHomework().length > 0 && (
+              <div className="homework-preview">
+                {getDayAfterTomorrowHomework().map(hw => (
+                  <div key={hw.id} className="homework-preview-item">
+                    <span className="homework-preview-icon">📚</span>
+                    <span className="homework-preview-title">{hw.title}</span>
+                    <span className="homework-preview-subject">{hw.subject}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             
-            {dayAfterTomorrowEvents.length === 0 && dayAfterTomorrowTasks.length === 0 ? (
+            {dayAfterTomorrowEvents.length === 0 && dayAfterTomorrowTasks.length === 0 && getDayAfterTomorrowHomework().length === 0 ? (
               <p className="empty-message">{t('calendar.noEvents')}</p>
             ) : (
               <div className="briefing-events">
