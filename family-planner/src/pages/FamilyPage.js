@@ -23,6 +23,7 @@ const FamilyPage = () => {
   const [newPin, setNewPin] = useState('');
   const [hasEmergencyPin, setHasEmergencyPin] = useState(false);
   const [isCommandCenterMode, setIsCommandCenterMode] = useState(false);
+  const [isEmergencyMode, setIsEmergencyMode] = useState(false);
 
   const [newRoutineTitle, setNewRoutineTitle] = useState('');
   const [newRoutineChildId, setNewRoutineChildId] = useState('');
@@ -427,6 +428,12 @@ const FamilyPage = () => {
         <section className="section">
           <h3 className="section-title">Noodkaart (alleen ouders)</h3>
 
+          <div className="form-inline">
+            <button className="emergency-mode-toggle" onClick={() => setIsEmergencyMode(true)}>
+              🚨 Start NOODMODUS
+            </button>
+          </div>
+
           {!hasEmergencyPin && (
             <div className="form-inline">
               <input type="password" value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="Stel ouder-PIN in" />
@@ -522,6 +529,39 @@ const FamilyPage = () => {
             </div>
           )}
         </section>
+      )}
+
+      {isEmergencyMode && (
+        <div className="emergency-overlay" onClick={() => setIsEmergencyMode(false)}>
+          <div className="emergency-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="emergency-modal-header">
+              <h3>🚨 NOODMODUS</h3>
+              <button className="close-emergency" onClick={() => setIsEmergencyMode(false)}>✕</button>
+            </div>
+
+            <div className="emergency-big-actions">
+              <a className="call-btn call-emergency big" href="tel:112">Bel 112</a>
+              {phoneToTelHref(emergencyCard?.parentPhone) && (
+                <a className="call-btn big" href={phoneToTelHref(emergencyCard?.parentPhone)}>
+                  Bel {emergencyCard?.parentName || 'mama'}
+                </a>
+              )}
+              {phoneToTelHref(emergencyCard?.backupContactPhone) && (
+                <a className="call-btn big" href={phoneToTelHref(emergencyCard?.backupContactPhone)}>
+                  Bel {emergencyCard?.backupContactName || 'Karin'}
+                </a>
+              )}
+            </div>
+
+            <div className="emergency-instructions">
+              <h4>Wat te doen bij brand</h4>
+              <p>{emergencyCard?.fireInstructions || '1. Blijf rustig. 2. Verlaat direct het huis. 3. Ga naar het verzamelpunt buiten. 4. Bel 112. 5. Bel mama of Karin.'}</p>
+              {emergencyCard?.homeAddress && (
+                <p className="emergency-address"><strong>Adres:</strong> {emergencyCard.homeAddress}</p>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {tab === 'meetings' && (
