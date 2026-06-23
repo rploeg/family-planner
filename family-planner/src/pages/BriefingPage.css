@@ -1156,6 +1156,81 @@
   display: contents;
 }
 
+/* iPad portrait (including iPad Pro 12.9" 1024x1366) */
+@media (min-width: 900px) and (max-width: 1199px) and (orientation: portrait) and (pointer: coarse) {
+  .briefing-page {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 10px 100px 10px;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .dashboard-main {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .dashboard-main .date-section {
+    padding: 0;
+  }
+
+  .dashboard-main .date-section .date-display {
+    font-size: 17px;
+    padding: 8px 10px;
+  }
+
+  /* Show 4 days as 2x2 blocks instead of 3 + 1 wrap */
+  .days-container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .days-container .events-section {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px;
+    min-height: 230px;
+  }
+
+  .days-container .section-title {
+    font-size: 13px;
+  }
+
+  .days-container .briefing-events {
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  /* Make weather + house visible in portrait */
+  .dashboard-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-top: 0;
+  }
+
+  .sidebar-section {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .sidebar-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+}
+
 /* iPad Pro 12.9" Landscape Dashboard Layout */
 @media (min-width: 1200px) {
   .briefing-page {
