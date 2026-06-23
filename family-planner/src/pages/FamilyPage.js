@@ -205,8 +205,8 @@ const FamilyPage = () => {
     <div className={`family-page ${isCommandCenterMode ? 'command-center-mode' : ''}`}>
       <div className="page-header">
         <div className="page-title-wrapper">
-          <p className="page-subtitle">FAMILY OPERATIONS HUB</p>
-          <h2 className="page-title">FAMILY</h2>
+          <p className="page-subtitle">FAMILIE ORGANISATIE HUB</p>
+          <h2 className="page-title">FAMILIE</h2>
         </div>
         <button className="add-btn" onClick={() => setIsCommandCenterMode((v) => !v)}>
           {isCommandCenterMode ? '⛶' : '🖥️'}
@@ -215,13 +215,13 @@ const FamilyPage = () => {
 
       <div className="family-tabs">
         {[
-          ['command', 'Command Center'],
+          ['command', 'Gezinsdashboard'],
           ['routines', 'Routines'],
-          ['homework', 'Homework'],
-          ['chores', 'Chores'],
-          ['tokens', 'Tokens'],
-          ['emergency', 'Emergency'],
-          ['meetings', 'Meetings']
+          ['homework', 'Huiswerk'],
+          ['chores', 'Taken'],
+          ['tokens', 'Schermtijd'],
+          ['emergency', 'Noodkaart'],
+          ['meetings', 'Overleggen']
         ].map(([value, label]) => (
           <button
             key={value}
@@ -235,32 +235,32 @@ const FamilyPage = () => {
 
       {tab === 'command' && summary && (
         <section className="section">
-          <h3 className="section-title">Today Overview</h3>
+          <h3 className="section-title">Overzicht van vandaag</h3>
           <div className="kpi-grid">
             <div className="kpi-card">
-              <div className="kpi-label">Routine Progress</div>
+              <div className="kpi-label">Routine voortgang</div>
               <div className="kpi-value">
                 {(summary.routineProgress || []).reduce((acc, r) => acc + (r.completedSteps || 0), 0)} /
                 {(summary.routineProgress || []).reduce((acc, r) => acc + (r.totalSteps || 0), 0)}
               </div>
             </div>
             <div className="kpi-card">
-              <div className="kpi-label">Homework Alerts</div>
+              <div className="kpi-label">Huiswerk meldingen</div>
               <div className="kpi-value">{summary.homeworkAlerts?.length || 0}</div>
             </div>
             <div className="kpi-card">
-              <div className="kpi-label">Open Chores</div>
+              <div className="kpi-label">Open taken</div>
               <div className="kpi-value">{summary.choresOpen?.length || 0}</div>
             </div>
             <div className="kpi-card">
-              <div className="kpi-label">Kids Wallets</div>
+              <div className="kpi-label">Tokens per kind</div>
               <div className="kpi-value">{summary.wallets?.length || 0}</div>
             </div>
           </div>
 
           <div className="split-grid">
             <div className="panel">
-              <h4>Due Soon Homework</h4>
+              <h4>Binnenkort huiswerk</h4>
               {(summary.homeworkAlerts || []).slice(0, 6).map((h) => (
                 <div key={h.id} className="row-item">
                   <span>{h.title}</span>
@@ -269,11 +269,11 @@ const FamilyPage = () => {
               ))}
             </div>
             <div className="panel">
-              <h4>Open Chores</h4>
+              <h4>Open taken</h4>
               {(summary.choresOpen || []).slice(0, 6).map((c) => (
                 <div key={c.id} className="row-item">
                   <span>{c.title}</span>
-                  <span>{c.points} pt</span>
+                  <span>{c.points} pnt</span>
                 </div>
               ))}
             </div>
@@ -283,21 +283,21 @@ const FamilyPage = () => {
 
       {tab === 'routines' && (
         <section className="section">
-          <h3 className="section-title">Recurring Routines</h3>
+          <h3 className="section-title">Terugkerende routines</h3>
           <div className="form-inline">
-            <input value={newRoutineTitle} onChange={(e) => setNewRoutineTitle(e.target.value)} placeholder="Routine title" />
+            <input value={newRoutineTitle} onChange={(e) => setNewRoutineTitle(e.target.value)} placeholder="Naam routine" />
             <select value={newRoutineChildId} onChange={(e) => setNewRoutineChildId(e.target.value)}>
-              <option value="">All kids</option>
+              <option value="">Alle kinderen</option>
               {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
-            <button onClick={saveRoutine}>Add Routine</button>
+            <button onClick={saveRoutine}>Routine toevoegen</button>
           </div>
-          <textarea value={newRoutineSteps} onChange={(e) => setNewRoutineSteps(e.target.value)} rows={3} placeholder="One step per line" />
+          <textarea value={newRoutineSteps} onChange={(e) => setNewRoutineSteps(e.target.value)} rows={3} placeholder="Een stap per regel" />
 
           <div className="panel-list">
             {routines.map((r) => (
               <div className="panel" key={r.id}>
-                <h4>{r.title} {r.childId ? `• ${memberById[r.childId]?.name || 'Child'}` : ''}</h4>
+                <h4>{r.title} {r.childId ? `• ${memberById[r.childId]?.name || 'Kind'}` : ''}</h4>
                 {(r.steps || []).map((s) => (
                   <label key={s.id} className="check-row">
                     <input type="checkbox" checked={!!s.completed} onChange={() => toggleRoutineStep(r.id, s)} />
@@ -312,16 +312,16 @@ const FamilyPage = () => {
 
       {tab === 'homework' && (
         <section className="section">
-          <h3 className="section-title">Homework Planner</h3>
+          <h3 className="section-title">Huiswerkplanner</h3>
           <div className="form-inline">
-            <input value={newHomeworkTitle} onChange={(e) => setNewHomeworkTitle(e.target.value)} placeholder="Homework task" />
-            <input value={newHomeworkSubject} onChange={(e) => setNewHomeworkSubject(e.target.value)} placeholder="Subject" />
+            <input value={newHomeworkTitle} onChange={(e) => setNewHomeworkTitle(e.target.value)} placeholder="Huiswerktaak" />
+            <input value={newHomeworkSubject} onChange={(e) => setNewHomeworkSubject(e.target.value)} placeholder="Vak" />
             <select value={newHomeworkChildId} onChange={(e) => setNewHomeworkChildId(e.target.value)}>
-              <option value="">Choose child</option>
+              <option value="">Kies kind</option>
               {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             <input type="date" value={newHomeworkDueDate} onChange={(e) => setNewHomeworkDueDate(e.target.value)} />
-            <button onClick={addHomework}>Add</button>
+            <button onClick={addHomework}>Toevoegen</button>
           </div>
 
           <div className="panel-list">
@@ -329,10 +329,10 @@ const FamilyPage = () => {
               <div key={h.id} className={`row-item card ${h.status === 'done' ? 'done' : ''}`}>
                 <div>
                   <strong>{h.title}</strong>
-                  <div className="muted">{h.subject || 'General'} • {memberById[h.childId]?.name || 'Family'} • due {h.dueDate}</div>
+                  <div className="muted">{h.subject || 'Algemeen'} • {memberById[h.childId]?.name || 'Familie'} • deadline {h.dueDate}</div>
                 </div>
                 <button disabled={h.status === 'done'} onClick={() => markHomeworkDone(h)}>
-                  {h.status === 'done' ? 'Done' : 'Mark done'}
+                  {h.status === 'done' ? 'Klaar' : 'Markeer klaar'}
                 </button>
               </div>
             ))}
@@ -342,16 +342,16 @@ const FamilyPage = () => {
 
       {tab === 'chores' && (
         <section className="section">
-          <h3 className="section-title">Chores + Points</h3>
+          <h3 className="section-title">Taken + punten</h3>
           <div className="form-inline">
-            <input value={newChoreTitle} onChange={(e) => setNewChoreTitle(e.target.value)} placeholder="Chore" />
+            <input value={newChoreTitle} onChange={(e) => setNewChoreTitle(e.target.value)} placeholder="Taak" />
             <select value={newChoreChildId} onChange={(e) => setNewChoreChildId(e.target.value)}>
-              <option value="">Choose child</option>
+              <option value="">Kies kind</option>
               {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             <input type="number" min="1" value={newChorePoints} onChange={(e) => setNewChorePoints(e.target.value)} />
             <input type="date" value={newChoreDueDate} onChange={(e) => setNewChoreDueDate(e.target.value)} />
-            <button onClick={addChore}>Add</button>
+            <button onClick={addChore}>Toevoegen</button>
           </div>
 
           <div className="panel-list">
@@ -359,10 +359,10 @@ const FamilyPage = () => {
               <div key={c.id} className={`row-item card ${c.status === 'done' ? 'done' : ''}`}>
                 <div>
                   <strong>{c.title}</strong>
-                  <div className="muted">{memberById[c.childId]?.name || 'Family'} • {c.points} pt • {c.dueDate || 'no due date'}</div>
+                  <div className="muted">{memberById[c.childId]?.name || 'Familie'} • {c.points} pnt • {c.dueDate || 'geen deadline'}</div>
                 </div>
                 <button disabled={c.status === 'done'} onClick={() => completeChore(c)}>
-                  {c.status === 'done' ? 'Completed' : 'Complete'}
+                  {c.status === 'done' ? 'Voltooid' : 'Voltooien'}
                 </button>
               </div>
             ))}
@@ -372,7 +372,7 @@ const FamilyPage = () => {
 
       {tab === 'tokens' && (
         <section className="section">
-          <h3 className="section-title">Screen-Time Tokens</h3>
+          <h3 className="section-title">Schermtijd tokens</h3>
           <div className="kpi-grid">
             {wallets.map((w) => (
               <div className="kpi-card" key={w.childId}>
@@ -384,16 +384,16 @@ const FamilyPage = () => {
 
           <div className="form-inline">
             <select value={tokenChildId} onChange={(e) => setTokenChildId(e.target.value)}>
-              <option value="">Choose child</option>
+              <option value="">Kies kind</option>
               {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             <input type="number" value={tokenDelta} onChange={(e) => setTokenDelta(e.target.value)} />
-            <input value={tokenReason} onChange={(e) => setTokenReason(e.target.value)} placeholder="Reason" />
-            <button onClick={adjustTokens}>Adjust</button>
+            <input value={tokenReason} onChange={(e) => setTokenReason(e.target.value)} placeholder="Reden" />
+            <button onClick={adjustTokens}>Aanpassen</button>
           </div>
 
           <div className="panel">
-            <h4>Recent transactions</h4>
+            <h4>Recente transacties</h4>
             {transactions.slice(0, 12).map((tx) => (
               <div className="row-item" key={tx.id}>
                 <span>{memberById[tx.childId]?.name || tx.childId} • {tx.reason}</span>
@@ -406,19 +406,19 @@ const FamilyPage = () => {
 
       {tab === 'emergency' && (
         <section className="section">
-          <h3 className="section-title">Parent-only Emergency Card</h3>
+          <h3 className="section-title">Noodkaart (alleen ouders)</h3>
 
           {!hasEmergencyPin && (
             <div className="form-inline">
-              <input type="password" value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="Set parent PIN" />
-              <button onClick={setupEmergencyPin}>Set PIN</button>
+              <input type="password" value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="Stel ouder-PIN in" />
+              <button onClick={setupEmergencyPin}>PIN instellen</button>
             </div>
           )}
 
           {hasEmergencyPin && !emergencyCard && (
             <div className="form-inline">
-              <input type="password" value={emergencyPin} onChange={(e) => setEmergencyPin(e.target.value)} placeholder="Enter parent PIN" />
-              <button onClick={unlockEmergencyCard}>Unlock card</button>
+              <input type="password" value={emergencyPin} onChange={(e) => setEmergencyPin(e.target.value)} placeholder="Voer ouder-PIN in" />
+              <button onClick={unlockEmergencyCard}>Kaart ontgrendelen</button>
             </div>
           )}
 
@@ -428,33 +428,33 @@ const FamilyPage = () => {
                 rows={2}
                 value={emergencyCard.householdDoctor || ''}
                 onChange={(e) => setEmergencyCard({ ...emergencyCard, householdDoctor: e.target.value })}
-                placeholder="Doctor"
+                placeholder="Huisarts"
               />
               <textarea
                 rows={3}
                 value={emergencyCard.allergies || ''}
                 onChange={(e) => setEmergencyCard({ ...emergencyCard, allergies: e.target.value })}
-                placeholder="Allergies"
+                placeholder="Allergieën"
               />
               <textarea
                 rows={3}
                 value={emergencyCard.medications || ''}
                 onChange={(e) => setEmergencyCard({ ...emergencyCard, medications: e.target.value })}
-                placeholder="Medications"
+                placeholder="Medicatie"
               />
               <textarea
                 rows={3}
                 value={emergencyCard.emergencyContacts || ''}
                 onChange={(e) => setEmergencyCard({ ...emergencyCard, emergencyContacts: e.target.value })}
-                placeholder="Emergency contacts"
+                placeholder="Noodcontacten"
               />
               <textarea
                 rows={3}
                 value={emergencyCard.notes || ''}
                 onChange={(e) => setEmergencyCard({ ...emergencyCard, notes: e.target.value })}
-                placeholder="Notes"
+                placeholder="Notities"
               />
-              <button onClick={saveEmergencyCard}>Save card</button>
+              <button onClick={saveEmergencyCard}>Noodkaart opslaan</button>
             </div>
           )}
         </section>
@@ -462,31 +462,31 @@ const FamilyPage = () => {
 
       {tab === 'meetings' && (
         <section className="section">
-          <h3 className="section-title">Family Meetings & Decisions</h3>
+          <h3 className="section-title">Gezinsoverleggen & besluiten</h3>
           <div className="form-inline">
-            <input value={newMeetingTitle} onChange={(e) => setNewMeetingTitle(e.target.value)} placeholder="Meeting title" />
+            <input value={newMeetingTitle} onChange={(e) => setNewMeetingTitle(e.target.value)} placeholder="Titel overleg" />
             <input type="date" value={newMeetingDate} onChange={(e) => setNewMeetingDate(e.target.value)} />
-            <button onClick={addMeeting}>Create meeting</button>
+            <button onClick={addMeeting}>Overleg maken</button>
           </div>
           <textarea
             rows={2}
             value={newMeetingNotes}
             onChange={(e) => setNewMeetingNotes(e.target.value)}
-            placeholder="Meeting notes"
+            placeholder="Notities overleg"
           />
 
           <div className="form-inline">
             <select value={activeMeetingForAction} onChange={(e) => setActiveMeetingForAction(e.target.value)}>
-              <option value="">Select meeting</option>
+              <option value="">Kies overleg</option>
               {meetings.map((m) => <option key={m.id} value={m.id}>{m.title} ({m.meetingDate})</option>)}
             </select>
-            <input value={newActionText} onChange={(e) => setNewActionText(e.target.value)} placeholder="Action" />
+            <input value={newActionText} onChange={(e) => setNewActionText(e.target.value)} placeholder="Actie" />
             <select value={newActionOwner} onChange={(e) => setNewActionOwner(e.target.value)}>
-              <option value="">Owner</option>
+              <option value="">Eigenaar</option>
               {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             <input type="date" value={newActionDueDate} onChange={(e) => setNewActionDueDate(e.target.value)} />
-            <button onClick={addMeetingAction}>Add action</button>
+            <button onClick={addMeetingAction}>Actie toevoegen</button>
           </div>
 
           <div className="panel-list">
@@ -496,8 +496,8 @@ const FamilyPage = () => {
                 {m.notes && <p className="muted">{m.notes}</p>}
                 {(m.actions || []).map((a) => (
                   <div className="row-item" key={a.id}>
-                    <span>{a.text} • {memberById[a.owner]?.name || 'owner?'} • {a.dueDate || 'no due'}</span>
-                    <button onClick={() => toggleMeetingAction(a)}>{a.status === 'done' ? 'Reopen' : 'Done'}</button>
+                    <span>{a.text} • {memberById[a.owner]?.name || 'onbekend'} • {a.dueDate || 'geen deadline'}</span>
+                    <button onClick={() => toggleMeetingAction(a)}>{a.status === 'done' ? 'Heropen' : 'Klaar'}</button>
                   </div>
                 ))}
               </div>
@@ -507,7 +507,7 @@ const FamilyPage = () => {
       )}
 
       <section className="section">
-        <h3 className="section-title">Family Members ({members.length})</h3>
+        <h3 className="section-title">Gezinsleden ({members.length})</h3>
         <div className="member-chips">
           {members.map((m) => (
             <span key={m.id} className="member-chip">
