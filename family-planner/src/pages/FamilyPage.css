@@ -1,5 +1,8 @@
 .family-page {
   animation: fadeIn 0.3s ease-in;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 @keyframes fadeIn {
@@ -10,5 +13,187 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.family-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.tab-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  background: rgba(139, 195, 74, 0.2);
+  border-color: #8BC34A;
+  color: #8BC34A;
+}
+
+.section {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.section-title {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.kpi-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.kpi-label {
+  color: #999;
+  font-size: 12px;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  margin-top: 2px;
+  color: #8BC34A;
+}
+
+.split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.panel h4 {
+  margin-bottom: 8px;
+}
+
+.form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.form-inline input,
+.form-inline select,
+.form-inline button,
+.panel-list textarea,
+.section textarea {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.form-inline button,
+.panel-list button,
+.row-item button,
+.section button {
+  background: linear-gradient(135deg, #8BC34A 0%, #689F38 100%);
+  color: #0a0a0a;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.row-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  margin-bottom: 6px;
+}
+
+.row-item.card {
+  padding: 12px;
+}
+
+.row-item.done {
+  opacity: 0.65;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.member-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.member-chip {
+  background: rgba(139, 195, 74, 0.15);
+  border: 1px solid rgba(139, 195, 74, 0.35);
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.muted {
+  color: #999;
+  font-size: 13px;
+}
+
+.pos {
+  color: #8BC34A;
+  font-weight: 700;
+}
+
+.neg {
+  color: #ff7a7a;
+  font-weight: 700;
+}
+
+.command-center-mode .kpi-value {
+  font-size: 30px;
+}
+
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .split-grid {
+    grid-template-columns: 1fr;
   }
 }

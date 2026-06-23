@@ -191,10 +191,151 @@ class DatabaseManager {
         )
       `);
 
+      // Daily routines and checklist steps
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS routines (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          timeOfDay TEXT DEFAULT 'after_school',
+          childId TEXT,
+          daysOfWeek TEXT DEFAULT '1,2,3,4,5,6,0',
+          isActive INTEGER DEFAULT 1,
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS routine_steps (
+          id TEXT PRIMARY KEY,
+          routineId TEXT NOT NULL,
+          text TEXT NOT NULL,
+          sortOrder INTEGER DEFAULT 0,
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (routineId) REFERENCES routines(id) ON DELETE CASCADE
+        )
+      `);
+
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS routine_completions (
+          id TEXT PRIMARY KEY,
+          routineId TEXT NOT NULL,
+          stepId TEXT NOT NULL,
+          date TEXT NOT NULL,
+          childId TEXT,
+          completed INTEGER DEFAULT 0,
+          completedAt TEXT,
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(stepId, date, childId),
+          FOREIGN KEY (routineId) REFERENCES routines(id) ON DELETE CASCADE,
+          FOREIGN KEY (stepId) REFERENCES routine_steps(id) ON DELETE CASCADE
+        )
+      `);
+
+      // Homework planner
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS homework_items (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          subject TEXT,
+          childId TEXT,
+          dueDate TEXT NOT NULL,
+          status TEXT DEFAULT 'open',
+          priority TEXT DEFAULT 'normal',
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Chores and points
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS chores (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          childId TEXT,
+          points INTEGER DEFAULT 1,
+          frequency TEXT DEFAULT 'weekly',
+          dueDate TEXT,
+          status TEXT DEFAULT 'open',
+          completedAt TEXT,
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Screen-time tokens wallet and transactions
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS token_wallets (
+          childId TEXT PRIMARY KEY,
+          balance INTEGER DEFAULT 0,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS token_transactions (
+          id TEXT PRIMARY KEY,
+          childId TEXT NOT NULL,
+          delta INTEGER NOT NULL,
+          reason TEXT,
+          sourceType TEXT,
+          sourceId TEXT,
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Parent-only emergency card (single record)
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS emergency_cards (
+          id TEXT PRIMARY KEY,
+          householdDoctor TEXT,
+          allergies TEXT,
+          medications TEXT,
+          emergencyContacts TEXT,
+          notes TEXT,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Family meeting notes and decisions/actions
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS family_meetings (
+          id TEXT PRIMARY KEY,
+          meetingDate TEXT NOT NULL,
+          title TEXT,
+          notes TEXT,
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS family_meeting_actions (
+          id TEXT PRIMARY KEY,
+          meetingId TEXT NOT NULL,
+          text TEXT NOT NULL,
+          owner TEXT,
+          dueDate TEXT,
+          status TEXT DEFAULT 'open',
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (meetingId) REFERENCES family_meetings(id) ON DELETE CASCADE
+        )
+      `);
+
       // Create indexes for better query performance
       this.db.run(`CREATE INDEX IF NOT EXISTS idx_meals_date ON meals(date)`);
       this.db.run(`CREATE INDEX IF NOT EXISTS idx_events_date ON calendar_events(date)`);
       this.db.run(`CREATE INDEX IF NOT EXISTS idx_list_items_listId ON shopping_list_items(listId)`);
+      this.db.run(`CREATE INDEX IF NOT EXISTS idx_routine_steps_routineId ON routine_steps(routineId)`);
+      this.db.run(`CREATE INDEX IF NOT EXISTS idx_routine_completions_date ON routine_completions(date)`);
+      this.db.run(`CREATE INDEX IF NOT EXISTS idx_homework_dueDate ON homework_items(dueDate)`);
+      this.db.run(`CREATE INDEX IF NOT EXISTS idx_chores_dueDate ON chores(dueDate)`);
+      this.db.run(`CREATE INDEX IF NOT EXISTS idx_token_tx_child ON token_transactions(childId, createdAt)`);
+      this.db.run(`CREATE INDEX IF NOT EXISTS idx_meeting_actions_meetingId ON family_meeting_actions(meetingId)`);
 
       console.log('✓ Database tables initialized');
     });

@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 // Load .env from persisted volume if in container, otherwise from app root
 const envPath = process.env.NODE_ENV === 'production' 
@@ -98,6 +99,43 @@ try {
 // Google Tasks Sync Configuration
 const GOOGLE_SYNC_INTERVAL = parseInt(process.env.GOOGLE_SYNC_INTERVAL) || 60; // seconds
 let googleSyncTimer = null;
+
+function makeId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getTodayLocalDateString() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function hashPin(pin) {
+  return crypto.createHash('sha256').update(String(pin)).digest('hex');
+}
+
+async function upsertSetting(key, value) {
+  const now = new Date().toISOString();
+  await db.run(
+    `INSERT INTO settings (key, value, updatedAt)
+     VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt`,
+    [key, value, now]
+  );
+}
+
+async function getSetting(key) {
+  const row = await db.get('SELECT value FROM settings WHERE key = ?', [key]);
+  return row?.value || null;
+}
+
+async function verifyParentPin(pin) {
+  const storedHash = await getSetting('parent_pin_hash');
+  if (!storedHash) return false;
+  return storedHash === hashPin(pin);
+}
 
 // Helper function to sync a single item to Google Tasks
 async function syncItemToGoogle(item, action = 'upsert') {
@@ -732,6 +770,588 @@ app.delete('/api/family-members/:id', async (req, res) => {
   try {
     await db.run('DELETE FROM family_members WHERE id = ?', [req.params.id]);
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============= FAMILY PRODUCTIVITY HUB API =============
+
+// Routines with daily checklist steps
+app.get('/api/routines', async (req, res) => {
+  try {
+    const routines = await db.all('SELECT * FROM routines WHERE isActive = 1 ORDER BY timeOfDay, createdAt');
+    for (const routine of routines) {
+      routine.steps = await db.all('SELECT * FROM routine_steps WHERE routineId = ? ORDER BY sortOrder, createdAt', [routine.id]);
+    }
+    res.json(routines);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/routines/progress', async (req, res) => {
+  try {
+    const date = req.query.date || getTodayLocalDateString();
+    const childId = req.query.childId || null;
+    const routines = await db.all('SELECT * FROM routines WHERE isActive = 1 ORDER BY timeOfDay, createdAt');
+
+    for (const routine of routines) {
+      routine.steps = await db.all('SELECT * FROM routine_steps WHERE routineId = ? ORDER BY sortOrder, createdAt', [routine.id]);
+      for (const step of routine.steps) {
+        const completion = await db.get(
+          'SELECT completed, completedAt FROM routine_completions WHERE stepId = ? AND date = ? AND (childId = ? OR (? IS NULL AND childId IS NULL))',
+          [step.id, date, childId, childId]
+        );
+        step.completed = completion?.completed === 1;
+        step.completedAt = completion?.completedAt || null;
+      }
+      routine.completedSteps = routine.steps.filter((s) => s.completed).length;
+      routine.totalSteps = routine.steps.length;
+    }
+
+    res.json({ date, childId, routines });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/routines', async (req, res) => {
+  try {
+    const { title, timeOfDay, childId, daysOfWeek, steps = [] } = req.body;
+    const now = new Date().toISOString();
+    const id = makeId('routine');
+    await db.run(
+      'INSERT INTO routines (id, title, timeOfDay, childId, daysOfWeek, isActive, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, 1, ?, ?)',
+      [id, title, timeOfDay || 'after_school', childId || null, daysOfWeek || '1,2,3,4,5,6,0', now, now]
+    );
+
+    for (let i = 0; i < steps.length; i++) {
+      const text = String(steps[i] || '').trim();
+      if (!text) continue;
+      await db.run(
+        'INSERT INTO routine_steps (id, routineId, text, sortOrder, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+        [makeId('step'), id, text, i, now, now]
+      );
+    }
+
+    res.json({ success: true, id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/routines/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, timeOfDay, childId, daysOfWeek, isActive } = req.body;
+    const now = new Date().toISOString();
+    await db.run(
+      `UPDATE routines
+       SET title = COALESCE(?, title),
+           timeOfDay = COALESCE(?, timeOfDay),
+           childId = COALESCE(?, childId),
+           daysOfWeek = COALESCE(?, daysOfWeek),
+           isActive = COALESCE(?, isActive),
+           updatedAt = ?
+       WHERE id = ?`,
+      [title, timeOfDay, childId, daysOfWeek, typeof isActive === 'number' ? isActive : null, now, id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/routines/:id', async (req, res) => {
+  try {
+    await db.run('DELETE FROM routines WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/routines/:routineId/steps/:stepId/toggle', async (req, res) => {
+  try {
+    const { routineId, stepId } = req.params;
+    const { date, childId, completed } = req.body;
+    const targetDate = date || getTodayLocalDateString();
+    const now = new Date().toISOString();
+
+    const row = await db.get(
+      'SELECT id FROM routine_completions WHERE stepId = ? AND date = ? AND (childId = ? OR (? IS NULL AND childId IS NULL))',
+      [stepId, targetDate, childId || null, childId || null]
+    );
+
+    if (row?.id) {
+      await db.run(
+        'UPDATE routine_completions SET completed = ?, completedAt = ?, updatedAt = ? WHERE id = ?',
+        [completed ? 1 : 0, completed ? now : null, now, row.id]
+      );
+    } else {
+      await db.run(
+        `INSERT INTO routine_completions (id, routineId, stepId, date, childId, completed, completedAt, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [makeId('rcomp'), routineId, stepId, targetDate, childId || null, completed ? 1 : 0, completed ? now : null, now, now]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Homework planner and alert windows
+app.get('/api/homework', async (req, res) => {
+  try {
+    const rows = await db.all('SELECT * FROM homework_items ORDER BY dueDate ASC, createdAt DESC');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/homework/alerts', async (req, res) => {
+  try {
+    const daysAhead = parseInt(req.query.daysAhead || '3', 10);
+    const today = getTodayLocalDateString();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + daysAhead);
+    const cutoffDate = cutoff.toISOString().split('T')[0];
+
+    const alerts = await db.all(
+      `SELECT * FROM homework_items
+       WHERE status != 'done' AND dueDate >= ? AND dueDate <= ?
+       ORDER BY dueDate ASC`,
+      [today, cutoffDate]
+    );
+
+    res.json({ today, cutoffDate, alerts });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/homework', async (req, res) => {
+  try {
+    const { title, description, subject, childId, dueDate, priority } = req.body;
+    const now = new Date().toISOString();
+    const id = makeId('hw');
+    await db.run(
+      `INSERT INTO homework_items (id, title, description, subject, childId, dueDate, status, priority, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)`,
+      [id, title, description || '', subject || '', childId || null, dueDate, priority || 'normal', now, now]
+    );
+    res.json({ success: true, id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/homework/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, subject, childId, dueDate, status, priority } = req.body;
+    const now = new Date().toISOString();
+    await db.run(
+      `UPDATE homework_items
+       SET title = COALESCE(?, title),
+           description = COALESCE(?, description),
+           subject = COALESCE(?, subject),
+           childId = COALESCE(?, childId),
+           dueDate = COALESCE(?, dueDate),
+           status = COALESCE(?, status),
+           priority = COALESCE(?, priority),
+           updatedAt = ?
+       WHERE id = ?`,
+      [title, description, subject, childId, dueDate, status, priority, now, id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/homework/:id', async (req, res) => {
+  try {
+    await db.run('DELETE FROM homework_items WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Chores with points -> token wallet
+app.get('/api/chores', async (req, res) => {
+  try {
+    const rows = await db.all('SELECT * FROM chores ORDER BY status ASC, dueDate ASC, createdAt DESC');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/chores', async (req, res) => {
+  try {
+    const { title, childId, points, frequency, dueDate } = req.body;
+    const now = new Date().toISOString();
+    const id = makeId('chore');
+    await db.run(
+      `INSERT INTO chores (id, title, childId, points, frequency, dueDate, status, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?)`,
+      [id, title, childId || null, parseInt(points || '1', 10), frequency || 'weekly', dueDate || null, now, now]
+    );
+    res.json({ success: true, id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/chores/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, childId, points, frequency, dueDate, status } = req.body;
+    const now = new Date().toISOString();
+    await db.run(
+      `UPDATE chores
+       SET title = COALESCE(?, title),
+           childId = COALESCE(?, childId),
+           points = COALESCE(?, points),
+           frequency = COALESCE(?, frequency),
+           dueDate = COALESCE(?, dueDate),
+           status = COALESCE(?, status),
+           updatedAt = ?
+       WHERE id = ?`,
+      [title, childId, points, frequency, dueDate, status, now, id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/chores/:id', async (req, res) => {
+  try {
+    await db.run('DELETE FROM chores WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/chores/:id/complete', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { completed, childId } = req.body;
+    const now = new Date().toISOString();
+    const chore = await db.get('SELECT * FROM chores WHERE id = ?', [id]);
+    if (!chore) {
+      return res.status(404).json({ error: 'Chore not found' });
+    }
+
+    const nextStatus = completed ? 'done' : 'open';
+    await db.run(
+      'UPDATE chores SET status = ?, completedAt = ?, updatedAt = ? WHERE id = ?',
+      [nextStatus, completed ? now : null, now, id]
+    );
+
+    const targetChild = childId || chore.childId;
+    if (completed && targetChild) {
+      const points = parseInt(chore.points || '0', 10);
+      await db.run(
+        `INSERT INTO token_wallets (childId, balance, updatedAt)
+         VALUES (?, ?, ?)
+         ON CONFLICT(childId) DO UPDATE SET
+           balance = token_wallets.balance + excluded.balance,
+           updatedAt = excluded.updatedAt`,
+        [targetChild, points, now]
+      );
+
+      await db.run(
+        `INSERT INTO token_transactions (id, childId, delta, reason, sourceType, sourceId, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [makeId('ttx'), targetChild, points, `Chore completed: ${chore.title}`, 'chore', id, now]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Screen-time tokens
+app.get('/api/tokens/wallets', async (req, res) => {
+  try {
+    const wallets = await db.all('SELECT * FROM token_wallets ORDER BY childId');
+    res.json(wallets);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/tokens/transactions', async (req, res) => {
+  try {
+    const { childId } = req.query;
+    const rows = childId
+      ? await db.all('SELECT * FROM token_transactions WHERE childId = ? ORDER BY createdAt DESC LIMIT 100', [childId])
+      : await db.all('SELECT * FROM token_transactions ORDER BY createdAt DESC LIMIT 100');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/tokens/adjust', async (req, res) => {
+  try {
+    const { childId, delta, reason } = req.body;
+    const amount = parseInt(delta || '0', 10);
+    if (!childId || !amount) {
+      return res.status(400).json({ error: 'childId and non-zero delta are required' });
+    }
+
+    const now = new Date().toISOString();
+    await db.run(
+      `INSERT INTO token_wallets (childId, balance, updatedAt)
+       VALUES (?, ?, ?)
+       ON CONFLICT(childId) DO UPDATE SET
+         balance = token_wallets.balance + excluded.balance,
+         updatedAt = excluded.updatedAt`,
+      [childId, amount, now]
+    );
+
+    await db.run(
+      `INSERT INTO token_transactions (id, childId, delta, reason, sourceType, sourceId, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [makeId('ttx'), childId, amount, reason || 'Manual adjust', 'manual', null, now]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Parent-only emergency card
+app.get('/api/emergency-card/status', async (req, res) => {
+  try {
+    const hash = await getSetting('parent_pin_hash');
+    res.json({ hasPin: !!hash });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/emergency-card/pin', async (req, res) => {
+  try {
+    const { pin, currentPin } = req.body;
+    if (!pin || String(pin).length < 4) {
+      return res.status(400).json({ error: 'PIN must be at least 4 digits' });
+    }
+
+    const existingHash = await getSetting('parent_pin_hash');
+    if (existingHash) {
+      const ok = await verifyParentPin(currentPin);
+      if (!ok) {
+        return res.status(401).json({ error: 'Invalid current PIN' });
+      }
+    }
+
+    await upsertSetting('parent_pin_hash', hashPin(pin));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/emergency-card', async (req, res) => {
+  try {
+    const pin = req.query.pin;
+    const ok = await verifyParentPin(pin);
+    if (!ok) {
+      return res.status(401).json({ error: 'Invalid PIN' });
+    }
+
+    const card = await db.get('SELECT * FROM emergency_cards WHERE id = ?', ['primary']);
+    res.json(card || {
+      id: 'primary',
+      householdDoctor: '',
+      allergies: '',
+      medications: '',
+      emergencyContacts: '',
+      notes: ''
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/emergency-card', async (req, res) => {
+  try {
+    const { pin, householdDoctor, allergies, medications, emergencyContacts, notes } = req.body;
+    const ok = await verifyParentPin(pin);
+    if (!ok) {
+      return res.status(401).json({ error: 'Invalid PIN' });
+    }
+
+    const now = new Date().toISOString();
+    await db.run(
+      `INSERT INTO emergency_cards (id, householdDoctor, allergies, medications, emergencyContacts, notes, updatedAt)
+       VALUES ('primary', ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         householdDoctor = excluded.householdDoctor,
+         allergies = excluded.allergies,
+         medications = excluded.medications,
+         emergencyContacts = excluded.emergencyContacts,
+         notes = excluded.notes,
+         updatedAt = excluded.updatedAt`,
+      [householdDoctor || '', allergies || '', medications || '', emergencyContacts || '', notes || '', now]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Family meetings and decisions
+app.get('/api/family-meetings', async (req, res) => {
+  try {
+    const meetings = await db.all('SELECT * FROM family_meetings ORDER BY meetingDate DESC, createdAt DESC');
+    for (const meeting of meetings) {
+      meeting.actions = await db.all('SELECT * FROM family_meeting_actions WHERE meetingId = ? ORDER BY createdAt', [meeting.id]);
+    }
+    res.json(meetings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/family-meetings', async (req, res) => {
+  try {
+    const { meetingDate, title, notes, actions = [] } = req.body;
+    const now = new Date().toISOString();
+    const id = makeId('meeting');
+    await db.run(
+      `INSERT INTO family_meetings (id, meetingDate, title, notes, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, meetingDate || getTodayLocalDateString(), title || 'Family meeting', notes || '', now, now]
+    );
+
+    for (const action of actions) {
+      if (!action?.text) continue;
+      await db.run(
+        `INSERT INTO family_meeting_actions (id, meetingId, text, owner, dueDate, status, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, 'open', ?, ?)`,
+        [makeId('mact'), id, action.text, action.owner || null, action.dueDate || null, now, now]
+      );
+    }
+
+    res.json({ success: true, id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/family-meetings/:id', async (req, res) => {
+  try {
+    const now = new Date().toISOString();
+    const { meetingDate, title, notes } = req.body;
+    await db.run(
+      `UPDATE family_meetings
+       SET meetingDate = COALESCE(?, meetingDate),
+           title = COALESCE(?, title),
+           notes = COALESCE(?, notes),
+           updatedAt = ?
+       WHERE id = ?`,
+      [meetingDate, title, notes, now, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/family-meetings/:id', async (req, res) => {
+  try {
+    await db.run('DELETE FROM family_meetings WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/family-meetings/:meetingId/actions', async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const { text, owner, dueDate } = req.body;
+    const now = new Date().toISOString();
+    const id = makeId('mact');
+    await db.run(
+      `INSERT INTO family_meeting_actions (id, meetingId, text, owner, dueDate, status, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, 'open', ?, ?)`,
+      [id, meetingId, text, owner || null, dueDate || null, now, now]
+    );
+    res.json({ success: true, id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/family-meetings/actions/:id', async (req, res) => {
+  try {
+    const now = new Date().toISOString();
+    const { text, owner, dueDate, status } = req.body;
+    await db.run(
+      `UPDATE family_meeting_actions
+       SET text = COALESCE(?, text),
+           owner = COALESCE(?, owner),
+           dueDate = COALESCE(?, dueDate),
+           status = COALESCE(?, status),
+           updatedAt = ?
+       WHERE id = ?`,
+      [text, owner, dueDate, status, now, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Command center aggregate data for large tablet dashboard mode
+app.get('/api/command-center/summary', async (req, res) => {
+  try {
+    const today = getTodayLocalDateString();
+    const [homeworkAlerts, choresOpen, wallets, meetings] = await Promise.all([
+      db.all(`SELECT * FROM homework_items WHERE status != 'done' AND dueDate >= ? AND dueDate <= date(?, '+3 day') ORDER BY dueDate ASC`, [today, today]),
+      db.all(`SELECT * FROM chores WHERE status != 'done' ORDER BY dueDate ASC, createdAt DESC LIMIT 12`),
+      db.all('SELECT * FROM token_wallets ORDER BY balance DESC'),
+      db.all('SELECT * FROM family_meetings ORDER BY meetingDate DESC LIMIT 5')
+    ]);
+
+    const routineProgress = await db.all(
+      `SELECT r.id, r.title,
+              COUNT(s.id) AS totalSteps,
+              SUM(CASE WHEN c.completed = 1 THEN 1 ELSE 0 END) AS completedSteps
+       FROM routines r
+       LEFT JOIN routine_steps s ON s.routineId = r.id
+       LEFT JOIN routine_completions c ON c.stepId = s.id AND c.date = ?
+       WHERE r.isActive = 1
+       GROUP BY r.id, r.title
+       ORDER BY r.timeOfDay, r.createdAt`,
+      [today]
+    );
+
+    res.json({
+      today,
+      routineProgress,
+      homeworkAlerts,
+      choresOpen,
+      wallets,
+      recentMeetings: meetings
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

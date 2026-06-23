@@ -245,6 +245,186 @@ class ApiService {
     return this.request('/api/recipes/random');
   }
 
+  // ============= FAMILY OPERATIONS API =============
+  async getRoutines(date) {
+    const query = date ? `?date=${encodeURIComponent(date)}` : '';
+    return this.request(`/api/routines${query}`);
+  }
+
+  async getRoutineProgress(date, childId) {
+    const queryParams = new URLSearchParams();
+    if (date) queryParams.append('date', date);
+    if (childId) queryParams.append('childId', childId);
+    const query = queryParams.toString();
+    return this.request(`/api/routines/progress${query ? `?${query}` : ''}`);
+  }
+
+  async createRoutine(payload) {
+    return this.request('/api/routines', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateRoutine(id, payload) {
+    return this.request(`/api/routines/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteRoutine(id) {
+    return this.request(`/api/routines/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async toggleRoutineStep(routineId, stepId, payload) {
+    return this.request(`/api/routines/${routineId}/steps/${stepId}/toggle`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getHomework() {
+    return this.request('/api/homework');
+  }
+
+  async getHomeworkAlerts(daysAhead = 3) {
+    return this.request(`/api/homework/alerts?daysAhead=${daysAhead}`);
+  }
+
+  async createHomework(payload) {
+    return this.request('/api/homework', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateHomework(id, payload) {
+    return this.request(`/api/homework/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteHomework(id) {
+    return this.request(`/api/homework/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getChores() {
+    return this.request('/api/chores');
+  }
+
+  async createChore(payload) {
+    return this.request('/api/chores', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateChore(id, payload) {
+    return this.request(`/api/chores/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteChore(id) {
+    return this.request(`/api/chores/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async completeChore(id, payload) {
+    return this.request(`/api/chores/${id}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getTokenWallets() {
+    return this.request('/api/tokens/wallets');
+  }
+
+  async getTokenTransactions(childId) {
+    const query = childId ? `?childId=${encodeURIComponent(childId)}` : '';
+    return this.request(`/api/tokens/transactions${query}`);
+  }
+
+  async adjustTokens(payload) {
+    return this.request('/api/tokens/adjust', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getEmergencyCardStatus() {
+    return this.request('/api/emergency-card/status');
+  }
+
+  async setEmergencyPin(payload) {
+    return this.request('/api/emergency-card/pin', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getEmergencyCard(pin) {
+    return this.request(`/api/emergency-card?pin=${encodeURIComponent(pin)}`);
+  }
+
+  async updateEmergencyCard(payload) {
+    return this.request('/api/emergency-card', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getFamilyMeetings() {
+    return this.request('/api/family-meetings');
+  }
+
+  async createFamilyMeeting(payload) {
+    return this.request('/api/family-meetings', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateFamilyMeeting(id, payload) {
+    return this.request(`/api/family-meetings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteFamilyMeeting(id) {
+    return this.request(`/api/family-meetings/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createFamilyMeetingAction(meetingId, payload) {
+    return this.request(`/api/family-meetings/${meetingId}/actions`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateFamilyMeetingAction(id, payload) {
+    return this.request(`/api/family-meetings/actions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getCommandCenterSummary() {
+    return this.request('/api/command-center/summary');
+  }
+
   // ============= HEALTH CHECK =============
   async healthCheck() {
     return this.request('/health');
