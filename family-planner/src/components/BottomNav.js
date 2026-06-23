@@ -29,6 +29,13 @@ const BottomNav = ({ currentPage, onNavigate }) => {
         <span className="nav-label">{t('nav.calendar')}</span>
       </button>
       <button
+        className={`nav-item ${currentPage === 'family' ? 'nav-item-active' : ''}`}
+        onClick={() => onNavigate('family')}
+      >
+        <span className="nav-icon">👨‍👩‍👧‍👦</span>
+        <span className="nav-label">{t('nav.family')}</span>
+      </button>
+      <button
         className={`nav-item ${currentPage === 'lists' ? 'nav-item-active' : ''}`}
         onClick={() => onNavigate('lists')}
       >
