@@ -12,17 +12,12 @@ const FamilyPage = () => {
   const [tab, setTab] = useState('command');
   const [members, setMembers] = useState([]);
   const [summary, setSummary] = useState(null);
-  const [routines, setRoutines] = useState([]);
   const [homework, setHomework] = useState([]);
   const [chores, setChores] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [emergencyCard, setEmergencyCard] = useState(null);
   const [isCommandCenterMode, setIsCommandCenterMode] = useState(false);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
-
-  const [newRoutineTitle, setNewRoutineTitle] = useState('');
-  const [newRoutineChildId, setNewRoutineChildId] = useState('');
-  const [newRoutineSteps, setNewRoutineSteps] = useState('Tas klaarzetten\nAgenda checken\nTanden poetsen');
 
   const [newHomeworkTitle, setNewHomeworkTitle] = useState('');
   const [newHomeworkChildId, setNewHomeworkChildId] = useState('');
@@ -51,10 +46,9 @@ const FamilyPage = () => {
   }, [members]);
 
   const loadAll = async () => {
-    const [m, s, r, h, c, mt, card] = await Promise.all([
+    const [m, s, h, c, mt, card] = await Promise.all([
       api.getFamilyMembers(),
       api.getCommandCenterSummary(),
-      api.getRoutineProgress(),
       api.getHomework(),
       api.getChores(),
       api.getFamilyMeetings(),
@@ -63,13 +57,11 @@ const FamilyPage = () => {
 
     setMembers(m);
     setSummary(s);
-    setRoutines(r.routines || []);
     setHomework(h);
     setChores(c);
     setMeetings(mt);
     setEmergencyCard(card);
 
-    if (!newRoutineChildId && m[0]?.id) setNewRoutineChildId(m[0].id);
     if (!newHomeworkChildId && m[0]?.id) setNewHomeworkChildId(m[0].id);
     if (!newChoreChildId && m[0]?.id) setNewChoreChildId(m[0].id);
     if (!newActionOwner && m[0]?.id) setNewActionOwner(m[0].id);
@@ -83,30 +75,6 @@ const FamilyPage = () => {
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const saveRoutine = async () => {
-    const steps = newRoutineSteps
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    await api.createRoutine({
-      title: newRoutineTitle,
-      timeOfDay: 'after_school',
-      childId: newRoutineChildId || null,
-      steps
-    });
-    setNewRoutineTitle('');
-    setNewRoutineSteps('Tas klaarzetten\nAgenda checken\nTanden poetsen');
-    await loadAll();
-  };
-
-  const toggleRoutineStep = async (routineId, step) => {
-    await api.toggleRoutineStep(routineId, step.id, {
-      completed: !step.completed,
-      childId: routines.find((r) => r.id === routineId)?.childId || null
-    });
-    await loadAll();
-  };
 
   const addHomework = async () => {
     await api.createHomework({
@@ -184,7 +152,6 @@ const FamilyPage = () => {
       <div className="family-tabs">
         {[
           ['command', 'Gezinsdashboard'],
-          ['routines', 'Routines'],
           ['homework', 'Huiswerk'],
           ['chores', 'Taken'],
           ['emergency', 'Noodkaart'],
@@ -244,61 +211,6 @@ const FamilyPage = () => {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-      )}
-
-      {tab === 'routines' && (
-        <section className="section">
-          <h3 className="section-title">Terugkerende routines</h3>
-          <div className="form-inline">
-            <input value={newRoutineTitle} onChange={(e) => setNewRoutineTitle(e.target.value)} placeholder="Naam routine" />
-            <select value={newRoutineChildId} onChange={(e) => setNewRoutineChildId(e.target.value)}>
-              <option value="">Alle kinderen</option>
-              {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-            <button onClick={saveRoutine}>Routine toevoegen</button>
-          </div>
-          <textarea value={newRoutineSteps} onChange={(e) => setNewRoutineSteps(e.target.value)} rows={3} placeholder="Een stap per regel" />
-
-          <div className="routines-list">
-            {routines.map((r) => {
-              const totalSteps = (r.steps || []).length;
-              const completedSteps = (r.steps || []).filter(s => s.completed).length;
-              const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-              const isRoutineComplete = completedSteps === totalSteps && totalSteps > 0;
-              
-              return (
-                <div className={`routine-card ${isRoutineComplete ? 'complete' : ''}`} key={r.id}>
-                  <div className="routine-header">
-                    <div className="routine-title-group">
-                      <h4>{r.title}</h4>
-                      {r.childId && <span className="routine-child">👤 {memberById[r.childId]?.name || 'Kind'}</span>}
-                    </div>
-                    <div className="routine-progress">
-                      <span className="progress-text">{completedSteps}/{totalSteps}</span>
-                      <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="routine-steps">
-                    {(r.steps || []).map((s) => (
-                      <label key={s.id} className={`step-row ${s.completed ? 'completed' : ''}`}>
-                        <input 
-                          type="checkbox" 
-                          checked={!!s.completed} 
-                          onChange={() => toggleRoutineStep(r.id, s)}
-                          className="step-checkbox"
-                        />
-                        <span className="step-text">{s.text}</span>
-                        {s.completed && <span className="step-check">✓</span>}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </section>
       )}

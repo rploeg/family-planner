@@ -21,7 +21,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
   const [prevEnergyData, setPrevEnergyData] = useState(null);
   const [tasksWithDueDate, setTasksWithDueDate] = useState([]);
   const [homework, setHomework] = useState([]);
-  const [routines, setRoutines] = useState([]);
   const todayEvents = getTodayEvents();
 
   console.log('BriefingPage received props:', {
@@ -83,7 +82,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
     loadLoxoneData();
     loadTasksWithDueDate();
     loadHomework();
-    loadRoutines();
 
     // Refresh Loxone data every 60 seconds
     const loxoneInterval = setInterval(() => {
@@ -114,16 +112,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
       setHomework(items);
     } catch (error) {
       console.error('Failed to load homework:', error);
-    }
-  };
-
-  const loadRoutines = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const data = await api.getRoutineProgress(today);
-      setRoutines(data.routines || []);
-    } catch (error) {
-      console.error('Failed to load routines:', error);
     }
   };
 
@@ -380,19 +368,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
   const getDayAfterTomorrowHomework = () => getHomeworkForDate(getDayAfterTomorrowDateString());
   const getDay3Homework = () => getHomeworkForDate(getDay3DateString());
 
-  // Get incomplete routine steps
-  const getIncompleteRoutineSteps = () => {
-    return routines.flatMap(routine => 
-      (routine.steps || [])
-        .filter(step => !step.completed)
-        .map(step => ({
-          ...step,
-          routine: routine.title,
-          childName: routine.childId ? routine.childName : null
-        }))
-    );
-  };
-
   const getOutdoorEvents = () => {
     return todayEvents.filter(event => {
       const location = event.location?.toLowerCase() || '';
@@ -483,25 +458,6 @@ const BriefingPage = ({ allAlerts = [], dismissedAlertIds = [], onNavigate }) =>
                   <div className="alert-subject">{hw.subject || 'Algemeen'}</div>
                   <div className="alert-title">{hw.title}</div>
                   <div className="alert-child">{hw.childName || 'Familie'}</div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Routines Alerts */}
-        {getIncompleteRoutineSteps().length > 0 && (
-          <section className="briefing-section alerts-section routines-alerts">
-            <div className="alerts-header">
-              <span className="alerts-icon">✓</span>
-              <h3>Routines vandaag ({getIncompleteRoutineSteps().length})</h3>
-            </div>
-            <div className="alerts-list">
-              {getIncompleteRoutineSteps().map((step, idx) => (
-                <div key={idx} className="alert-item routine-item">
-                  <div className="alert-routine">{step.routine}</div>
-                  <div className="alert-step">{step.text}</div>
-                  {step.childName && <div className="alert-child">{step.childName}</div>}
                 </div>
               ))}
             </div>
